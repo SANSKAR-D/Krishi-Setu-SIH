@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Search, QrCode, Globe, Bell } from 'lucide-react';
 
 const Navbar = () => {

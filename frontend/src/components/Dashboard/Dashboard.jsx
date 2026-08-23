@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Leaf, AlertTriangle, ClipboardList, Droplet, Maximize, Brain, Sun, CloudSun, CloudRain, Cloud } from 'lucide-react';
 
 const Dashboard = () => {
