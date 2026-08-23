@@ -1,4 +1,3 @@
-import React from 'react';
 import { Brain, Home, Sprout, Calendar, Bot, HelpCircle, Settings } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
@@ -33,14 +32,14 @@ const Sidebar = () => {
           <Sprout className="w-5 h-5" />
           <span className="label-sm">Soil Health</span>
         </NavLink>
-        <a className="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer" href="#">
+        <NavLink to="/crop-calendar" className={navClass}>
           <Calendar className="w-5 h-5" />
           <span className="label-sm">Crop Calendar</span>
-        </a>
-        <a className="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer" href="#">
+        </NavLink>
+        <NavLink to="/expert-chat" className={navClass}>
           <Bot className="w-5 h-5" />
           <span className="label-sm">Expert Chat</span>
-        </a>
+        </NavLink>
       </div>
       
       {/* CTA & Footer */}
