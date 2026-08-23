@@ -5,9 +5,7 @@ import pandas as pd
 import requests
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-# =========================================================
-# 1. LOAD MODELS ONCE AT STARTUP (FAST PERFORMANCE)
-# =========================================================
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "..", "models", "xgb_crop_model.joblib")
 ENCODER_PATH = os.path.join(BASE_DIR, "..", "models", "label_encoder.joblib")
@@ -16,11 +14,9 @@ model = joblib.load(MODEL_PATH)
 label_encoder = joblib.load(ENCODER_PATH)
 
 
-# =========================================================
 # 2. HELPER: WEATHER SUMMARY API
-# =========================================================
+
 def get_weather_summary(lat: float, lon: float, days: int = 16) -> dict:
-    """Fetches weather summary from Open-Meteo API."""
     url = (
         f"https://api.open-meteo.com/v1/forecast?"
         f"latitude={lat}&longitude={lon}&daily=temperature_2m_mean,"
@@ -44,10 +40,7 @@ def get_weather_summary(lat: float, lon: float, days: int = 16) -> dict:
         "rainfall": round(float(daily_df["Rainfall_mm"].sum()), 2)
     }
 
-
-# =========================================================
 # 3. MAIN PREDICTION SERVICE (CALLED BY BACKEND)
-# =========================================================
 def predict_recommended_crops(
     lat: float,
     lon: float,
@@ -57,12 +50,7 @@ def predict_recommended_crops(
     ph: float,
     top_n: int = 5
 ) -> dict:
-    """
-    Predicts top crop recommendations based on location weather and soil parameters.
-    
-    Returns:
-        dict: JSON-serializable dictionary containing recommendations and weather metrics.
-    """
+
     # 1. Fetch weather parameters
     weather_summary = get_weather_summary(lat, lon, days=16)
 
