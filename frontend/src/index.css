@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --color-on-tertiary-container: #fffbff;
+  --color-error-container: #ffdad6;
+  --color-inverse-surface: #2e3132;
+  --color-on-secondary-fixed: #002113;
+  --color-on-tertiary: #ffffff;
+  --color-outline: #6d7a72;
+  --color-inverse-primary: #68dba9;
+  --color-primary-container: #00855d;
+  --color-outline-variant: #bccac0;
+  --color-primary-fixed: #85f8c4;
+  --color-on-error-container: #93000a;
+  --color-on-secondary-fixed-variant: #005236;
+  --color-tertiary-fixed: #ffdbcc;
+  --color-primary-fixed-dim: #68dba9;
+  --color-secondary-fixed: #6ffbbe;
+  --color-surface-container: #edeeef;
+  --color-inverse-on-surface: #f0f1f2;
+  --color-surface-bright: #f8f9fa;
+  --color-surface-container-high: #e7e8e9;
+  --color-on-primary-container: #f5fff7;
+  --color-surface-tint: #006c4a;
+  --color-secondary: #006c49;
+  --color-secondary-fixed-dim: #4edea3;
+  --color-on-primary-fixed-variant: #005137;
+  --color-secondary-container: #6cf8bb;
+  --color-surface-variant: #e1e3e4;
+  --color-on-secondary: #ffffff;
+  --color-on-background: #191c1d;
+  --color-on-surface-variant: #3d4a42;
+  --color-surface: #f8f9fa;
+  --color-on-error: #ffffff;
+  --color-on-primary-fixed: #002114;
+  --color-surface-dim: #d9dadb;
+  --color-tertiary: #904821;
+  --color-on-tertiary-fixed-variant: #76330d;
+  --color-surface-container-low: #f3f4f5;
+  --color-on-primary: #ffffff;
+  --color-tertiary-container: #af5f36;
+  --color-error: #ba1a1a;
+  --color-tertiary-fixed-dim: #ffb693;
+  --color-background: #f8f9fa;
+  --color-surface-container-lowest: #ffffff;
+  --color-primary: #006948;
+  --color-surface-container-highest: #e1e3e4;
+  --color-on-tertiary-fixed: #351000;
+  --color-on-secondary-container: #00714d;
+  --color-on-surface: #191c1d;
+
+  --spacing-lg: 48px;
+  --spacing-base: 8px;
+  --spacing-gutter: 24px;
+  --spacing-md: 24px;
+  --spacing-margin-desktop: 64px;
+  --spacing-margin-mobile: 16px;
+  --spacing-sm: 12px;
+  --spacing-xs: 4px;
+  --spacing-xl: 80px;
+
+  --font-title-md: "Inter", sans-serif;
+  --font-body-md: "Inter", sans-serif;
+  --font-body-lg: "Inter", sans-serif;
+  --font-display-lg: "Inter", sans-serif;
+  --font-label-sm: "Inter", sans-serif;
+  --font-headline-lg-mobile: "Inter", sans-serif;
+  --font-headline-lg: "Inter", sans-serif;
+}
+
+@utility title-md {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+@utility body-md {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+@utility body-lg {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+}
+@utility display-lg {
+  font-size: 48px;
+  line-height: 56px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+@utility label-sm {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+}
+@utility headline-lg-mobile {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+}
+@utility headline-lg {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 600;
+}

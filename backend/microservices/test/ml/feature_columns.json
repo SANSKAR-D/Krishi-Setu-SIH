@@ -1,0 +1,16 @@
+{
+  "feature_order": [
+    "Crop_Type",
+    "Soil_Type",
+    "Soil_pH",
+    "Temperature",
+    "Humidity",
+    "Wind_Speed",
+    "N",
+    "P",
+    "K",
+    "Soil_Quality",
+    "Month"
+  ],
+  "target": "Crop_Yield"
+}
