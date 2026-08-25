@@ -17,3 +17,6 @@ pinecone-client
 langchain-pinecone
 langchain-huggingface
 sentence-transformers
+langgraph-checkpoint-postgres
+psycopg-pool
+psycopg[binary]
