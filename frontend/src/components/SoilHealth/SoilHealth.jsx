@@ -20,12 +20,12 @@ const SoilHealth = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-sm">
           <div>
-            <h1 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Soil Health Overview</h1>
-            <p className="font-body-md text-body-md text-on-surface-variant">North Field, Section 4</p>
+            <h1 className="headline-lg-mobile md:headline-lg headline-lg-mobile md:headline-lg text-on-surface">Soil Health Overview</h1>
+            <p className="body-md text-on-surface-variant">North Field, Section 4</p>
           </div>
           <div className="flex items-center gap-xs bg-surface-container-low px-sm py-xs rounded-lg border border-outline-variant cursor-pointer">
             <Calendar className="text-on-surface-variant w-5 h-5" />
-            <span className="font-label-sm text-label-sm text-on-surface">Last 7 Days</span>
+            <span className="label-sm text-on-surface">Last 7 Days</span>
             <ChevronDown className="text-on-surface-variant w-4 h-4" />
           </div>
         </div>
@@ -36,60 +36,60 @@ const SoilHealth = () => {
           {/* NPK */}
           <div className="bg-surface-container-lowest rounded-xl p-sm md:p-md border border-surface-variant shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-sm">
-              <h3 className="font-label-sm text-label-sm text-on-surface-variant">NPK Levels</h3>
+              <h3 className="label-sm text-on-surface-variant">NPK Levels</h3>
               <FlaskConical className="text-primary w-5 h-5" />
             </div>
             <div className="flex items-end gap-xs mb-xs">
-              <span className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Good</span>
+              <span className="headline-lg-mobile text-on-surface">Good</span>
             </div>
             <div className="flex items-center gap-xs text-primary">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="font-label-sm text-label-sm">Balanced</span>
+              <span className="label-sm">Balanced</span>
             </div>
           </div>
           
           {/* pH Level */}
           <div className="bg-surface-container-lowest rounded-xl p-sm md:p-md border border-surface-variant shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-sm">
-              <h3 className="font-label-sm text-label-sm text-on-surface-variant">pH Level</h3>
+              <h3 className="label-sm text-on-surface-variant">pH Level</h3>
               <Droplets className="text-secondary w-5 h-5" />
             </div>
             <div className="flex items-end gap-xs mb-xs">
-              <span className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">6.5</span>
+              <span className="headline-lg-mobile text-on-surface">6.5</span>
             </div>
             <div className="flex items-center gap-xs text-primary">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="font-label-sm text-label-sm">Optimal</span>
+              <span className="label-sm">Optimal</span>
             </div>
           </div>
           
           {/* Soil Moisture */}
           <div className="bg-surface-container-lowest rounded-xl p-sm md:p-md border border-surface-variant shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-sm">
-              <h3 className="font-label-sm text-label-sm text-on-surface-variant">Soil Moisture</h3>
+              <h3 className="label-sm text-on-surface-variant">Soil Moisture</h3>
               <Waves className="text-tertiary w-5 h-5" />
             </div>
             <div className="flex items-end gap-xs mb-xs">
-              <span className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">42%</span>
+              <span className="headline-lg-mobile text-on-surface">42%</span>
             </div>
             <div className="flex items-center gap-xs text-tertiary-container">
               <AlertTriangle className="w-4 h-4" />
-              <span className="font-label-sm text-label-sm">Slightly Low</span>
+              <span className="label-sm">Slightly Low</span>
             </div>
           </div>
           
           {/* Temperature */}
           <div className="bg-surface-container-lowest rounded-xl p-sm md:p-md border border-surface-variant shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-sm">
-              <h3 className="font-label-sm text-label-sm text-on-surface-variant">Temperature</h3>
+              <h3 className="label-sm text-on-surface-variant">Temperature</h3>
               <Thermometer className="text-secondary w-5 h-5" />
             </div>
             <div className="flex items-end gap-xs mb-xs">
-              <span className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">22°C</span>
+              <span className="headline-lg-mobile text-on-surface">22°C</span>
             </div>
             <div className="flex items-center gap-xs text-primary">
               <TrendingUp className="w-4 h-4" />
-              <span className="font-label-sm text-label-sm">Steady</span>
+              <span className="label-sm">Steady</span>
             </div>
           </div>
           
@@ -101,7 +101,7 @@ const SoilHealth = () => {
           {/* Chart Area (Spans 2 columns on lg) */}
           <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm flex flex-col h-96">
             <div className="p-md border-b border-surface-variant flex justify-between items-center">
-              <h3 className="font-title-md text-title-md text-on-surface">Moisture Trends</h3>
+              <h3 className="title-md text-on-surface">Moisture Trends</h3>
               <button className="text-on-surface-variant hover:text-primary transition-colors bg-transparent border-none cursor-pointer">
                 <MoreVertical className="w-5 h-5" />
               </button>
@@ -126,10 +126,10 @@ const SoilHealth = () => {
             
             {/* Nutrient Analysis */}
             <div className="bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm p-md">
-              <h3 className="font-title-md text-title-md text-on-surface mb-sm">Nutrient Analysis</h3>
+              <h3 className="title-md text-on-surface mb-sm">Nutrient Analysis</h3>
               <div className="space-y-sm">
                 <div>
-                  <div className="flex justify-between font-label-sm text-label-sm mb-xs">
+                  <div className="flex justify-between label-sm mb-xs">
                     <span className="text-on-surface-variant">Nitrogen (N)</span>
                     <span className="text-on-surface">Low</span>
                   </div>
@@ -138,7 +138,7 @@ const SoilHealth = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between font-label-sm text-label-sm mb-xs">
+                  <div className="flex justify-between label-sm mb-xs">
                     <span className="text-on-surface-variant">Phosphorus (P)</span>
                     <span className="text-on-surface">Optimal</span>
                   </div>
@@ -147,7 +147,7 @@ const SoilHealth = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between font-label-sm text-label-sm mb-xs">
+                  <div className="flex justify-between label-sm mb-xs">
                     <span className="text-on-surface-variant">Potassium (K)</span>
                     <span className="text-on-surface">Optimal</span>
                   </div>
@@ -160,20 +160,20 @@ const SoilHealth = () => {
             
             {/* Recommendations */}
             <div className="bg-surface-container-lowest rounded-xl border border-surface-variant shadow-sm p-md flex-1">
-              <h3 className="font-title-md text-title-md text-on-surface mb-sm">AI Recommendations</h3>
+              <h3 className="title-md text-on-surface mb-sm">AI Recommendations</h3>
               <ul className="space-y-sm p-0 m-0 list-none">
                 <li className="flex items-start gap-sm p-sm bg-surface-container-low rounded-lg">
                   <AlertTriangle className="text-tertiary-container mt-xs w-5 h-5 shrink-0" />
                   <div>
-                    <p className="font-label-sm text-label-sm text-on-surface font-semibold m-0">Apply Nitrogen</p>
-                    <p className="font-body-md text-body-md text-on-surface-variant text-sm mt-1 mb-0">Levels are dropping. Recommend 50kg/ha N-rich fertilizer.</p>
+                    <p className="label-sm text-on-surface font-semibold m-0">Apply Nitrogen</p>
+                    <p className="body-md text-on-surface-variant text-sm mt-1 mb-0">Levels are dropping. Recommend 50kg/ha N-rich fertilizer.</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-sm p-sm bg-surface-container-low rounded-lg">
                   <Droplets className="text-primary mt-xs w-5 h-5 shrink-0" />
                   <div>
-                    <p className="font-label-sm text-label-sm text-on-surface font-semibold m-0">Irrigation Needed</p>
-                    <p className="font-body-md text-body-md text-on-surface-variant text-sm mt-1 mb-0">Next irrigation scheduled in 2 days to maintain moisture.</p>
+                    <p className="label-sm text-on-surface font-semibold m-0">Irrigation Needed</p>
+                    <p className="body-md text-on-surface-variant text-sm mt-1 mb-0">Next irrigation scheduled in 2 days to maintain moisture.</p>
                   </div>
                 </li>
               </ul>

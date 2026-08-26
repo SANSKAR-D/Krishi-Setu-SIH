@@ -48,7 +48,7 @@ const ExpertChat = () => {
         <div className="max-w-[800px] mx-auto flex flex-col gap-md pb-xl">
           {/* Date separator */}
           <div className="flex justify-center my-4">
-            <span className="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full font-label-sm text-label-sm">
+            <span className="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full label-sm">
               Today
             </span>
           </div>
@@ -56,7 +56,7 @@ const ExpertChat = () => {
           {/* User message */}
           <div className="flex flex-col gap-sm items-end w-full">
             <div className="bg-primary text-on-primary rounded-2xl rounded-tr-sm p-4 max-w-[85%] shadow-sm relative">
-              <p className="font-body-md text-body-md">
+              <p className="body-md">
                 Hello, my cucumber plant leaves are starting to turn yellow with some fuzzy
                 patches underneath. What could be the issue?
               </p>
@@ -72,17 +72,17 @@ const ExpertChat = () => {
               <div className="bg-surface rounded-2xl rounded-tl-sm p-5 border border-outline-variant shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-tertiary-container"></div>
                 <div className="flex items-start justify-between mb-sm pl-2">
-                  <h3 className="font-title-md text-title-md text-on-surface flex items-center gap-2">
+                  <h3 className="title-md text-on-surface flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-tertiary-container" />
                     Diagnosis: Downy Mildew
                   </h3>
-                  <span className="bg-error-container text-on-error-container px-2 py-1 rounded-md font-label-sm text-label-sm flex items-center gap-1">
+                  <span className="bg-error-container text-on-error-container px-2 py-1 rounded-md label-sm flex items-center gap-1">
                     <AlertCircle className="w-[14px] h-[14px]" /> High Alert
                   </span>
                 </div>
 
                 <div className="pl-2">
-                  <p className="font-body-md text-body-md text-on-surface-variant mb-4">
+                  <p className="body-md text-on-surface-variant mb-4">
                     Based on your description of yellowing leaves with fuzzy patches
                     underneath, this is highly likely Downy Mildew, a common fungal disease
                     affecting cucurbits.
@@ -97,10 +97,10 @@ const ExpertChat = () => {
                       />
                     </div>
                     <div className="bg-surface-container-low p-3 rounded-lg flex flex-col justify-center">
-                      <p className="font-label-sm text-label-sm text-on-surface mb-1 font-semibold">
+                      <p className="label-sm text-on-surface mb-1 font-semibold">
                         Key Symptoms Identified:
                       </p>
-                      <ul className="font-body-md text-body-md text-on-surface-variant list-disc pl-4 space-y-1">
+                      <ul className="body-md text-on-surface-variant list-disc pl-4 space-y-1">
                         {symptoms.map((symptom) => (
                           <li key={symptom}>{symptom}</li>
                         ))}
@@ -109,10 +109,10 @@ const ExpertChat = () => {
                   </div>
 
                   <div className="mt-md border-t border-outline-variant pt-4">
-                    <h4 className="font-label-sm text-label-sm text-on-surface font-semibold mb-2">
+                    <h4 className="label-sm text-on-surface font-semibold mb-2">
                       Recommended Treatment Plan:
                     </h4>
-                    <ol className="font-body-md text-body-md text-on-surface-variant space-y-3">
+                    <ol className="body-md text-on-surface-variant space-y-3">
                       {treatmentSteps.map((step, idx) => (
                         <li key={idx} className="flex gap-2 items-start">
                           <div className="w-6 h-6 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center flex-shrink-0 text-sm font-bold">
@@ -130,13 +130,13 @@ const ExpertChat = () => {
 
               {/* Action buttons */}
               <div className="flex gap-2 pl-2">
-                <button className="px-3 py-1.5 border border-outline-variant rounded-full font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1">
+                <button className="px-3 py-1.5 border border-outline-variant rounded-full label-sm text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1">
                   <ThumbsUp className="w-4 h-4" /> Helpful
                 </button>
-                <button className="px-3 py-1.5 border border-outline-variant rounded-full font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1">
+                <button className="px-3 py-1.5 border border-outline-variant rounded-full label-sm text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1">
                   <ShoppingCart className="w-4 h-4" /> Buy Fungicide
                 </button>
-                <button className="px-3 py-1.5 border border-outline-variant rounded-full font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1">
+                <button className="px-3 py-1.5 border border-outline-variant rounded-full label-sm text-on-surface-variant hover:bg-surface-container transition-colors flex items-center gap-1">
                   <ImagePlus className="w-4 h-4" /> Upload Photo to Confirm
                 </button>
               </div>
@@ -156,7 +156,7 @@ const ExpertChat = () => {
               <Camera className="w-5 h-5" />
             </button>
             <input
-              className="flex-1 bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/60 py-2 px-2"
+              className="flex-1 bg-transparent border-none focus:ring-0 body-md text-on-surface placeholder:text-on-surface-variant/60 py-2 px-2"
               placeholder="Ask about your crops, soil, or weather..."
               type="text"
               value={message}
@@ -174,7 +174,7 @@ const ExpertChat = () => {
             </button>
           </div>
           <div className="text-center mt-2">
-            <span className="font-label-sm text-label-sm text-on-surface-variant/60 text-xs">
+            <span className="label-sm text-on-surface-variant/60 text-xs">
               AgriExpert AI can make mistakes. Verify critical treatments.
             </span>
           </div>

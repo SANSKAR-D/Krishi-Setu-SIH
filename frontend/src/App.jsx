@@ -8,7 +8,7 @@ import CropCalendar from './components/CropCalender/CropCalender'
 
 const App = () => {
   return (
-    <div className="bg-background text-on-background font-body-md h-screen flex overflow-hidden">
+    <div className="bg-background text-on-background body-md h-screen flex overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col lg:ml-64 w-full relative overflow-y-auto">
         <Navbar />
