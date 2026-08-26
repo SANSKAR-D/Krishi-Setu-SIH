@@ -8,7 +8,7 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage, SystemMessage, AnyMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolNode 
 from langgraph.checkpoint.memory import MemorySaver
 from dotenv import load_dotenv
 
@@ -41,7 +41,7 @@ def predict_yield(lat: float, lon: float, crop_type: str, soil_type: str, soil_p
         "soil_ph": soil_ph, "n": n, "p": p, "k": k, "soil_quality": soil_quality, "month": month
     }
     try:
-        response = requests.post(url, json=payload, timeout=30)
+        response = requests.post(url, json=payload, timeout=30)  # type: ignore
         response.raise_for_status()
         return json.dumps(response.json())
     except Exception as e:
@@ -59,7 +59,7 @@ def predict_water_requirement(crop: str, soil: str, region: str, temp_range: str
         "crop": crop, "soil": soil, "region": region, "temp_range": temp_range, "weather": weather
     }
     try:
-        response = requests.post(url, json=payload, timeout=30)
+        response = requests.post(url, json=payload, timeout=30)  # type: ignore
         response.raise_for_status()
         return json.dumps(response.json())
     except Exception as e:
@@ -77,7 +77,7 @@ def recommend_crop(lat: float, lon: float, n: float, p: float, k: float, ph: flo
         "lat": lat, "lon": lon, "n": n, "p": p, "k": k, "ph": ph, "top_n": top_n
     }
     try:
-        response = requests.post(url, json=payload, timeout=30)
+        response = requests.post(url, json=payload, timeout=30)  # type: ignore
         response.raise_for_status()
         return json.dumps(response.json())
     except Exception as e:
@@ -119,7 +119,7 @@ def dl_node(state: AgentState):
     payload = {"image_urls": image_urls}
     
     try:
-        response = requests.post(url, json=payload, timeout=30)
+        response = requests.post(url, json=payload, timeout=30)  # type: ignore
         response.raise_for_status()
         return {"dl_result": response.json()}
     except Exception as e:
@@ -182,7 +182,7 @@ def should_continue(state: AgentState):
     messages = state["messages"]
     last_message = messages[-1]
     
-    if last_message.tool_calls:
+    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
         return "tools_node"
     return END
 

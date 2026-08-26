@@ -9,11 +9,11 @@ const Dashboard = () => {
         {/* Welcome Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-sm">
           <div>
-            <p className="font-label-sm text-label-sm text-on-surface-variant mb-xs">October 24, 2023</p>
-            <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Welcome back, Farmer John</h2>
+            <p className="label-sm text-on-surface-variant mb-xs">October 24, 2023</p>
+            <h2 className="headline-lg-mobile md:headline-lg headline-lg-mobile md:headline-lg text-on-surface">Welcome back, Farmer John</h2>
           </div>
           <div className="bg-surface px-md py-sm rounded-lg border border-outline-variant">
-            <p className="font-body-md text-body-md text-on-surface-variant">
+            <p className="body-md text-on-surface-variant">
               All <span className="font-bold text-primary">4</span> fields are currently healthy. <span className="font-bold text-tertiary">2</span> tasks require attention today.
             </p>
           </div>
@@ -24,15 +24,15 @@ const Dashboard = () => {
           {/* Card 1 */}
           <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-md">
-              <h3 className="font-title-md text-title-md text-on-surface">Field Health Score</h3>
+              <h3 className="title-md text-on-surface">Field Health Score</h3>
               <Leaf className="text-primary w-6 h-6" />
             </div>
             <div className="flex items-center gap-md">
               <div className="w-16 h-16 rounded-full border-4 border-primary border-r-surface-variant flex items-center justify-center transform rotate-45">
-                <span className="font-title-md text-title-md text-primary transform -rotate-45">92%</span>
+                <span className="title-md text-primary transform -rotate-45">92%</span>
               </div>
               <div>
-                <p className="font-label-sm text-label-sm text-on-surface-variant">Overall farm vitality</p>
+                <p className="label-sm text-on-surface-variant">Overall farm vitality</p>
                 <p className="font-body-sm text-primary mt-xs">+2% from last week</p>
               </div>
             </div>
@@ -41,16 +41,16 @@ const Dashboard = () => {
           {/* Card 2 */}
           <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-md">
-              <h3 className="font-title-md text-title-md text-on-surface">Active Alerts</h3>
+              <h3 className="title-md text-on-surface">Active Alerts</h3>
               <AlertTriangle className="text-tertiary w-6 h-6" />
             </div>
             <div className="flex flex-col gap-sm">
               <div className="flex justify-between items-center bg-surface-container-low px-sm py-xs rounded-lg">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Critical</span>
+                <span className="label-sm text-on-surface-variant">Critical</span>
                 <span className="bg-error-container text-on-error-container px-2 py-0.5 rounded text-xs font-bold">0</span>
               </div>
               <div className="flex justify-between items-center bg-surface-container-low px-sm py-xs rounded-lg">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Warnings</span>
+                <span className="label-sm text-on-surface-variant">Warnings</span>
                 <span className="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-xs font-bold">2</span>
               </div>
             </div>
@@ -59,7 +59,7 @@ const Dashboard = () => {
           {/* Card 3 */}
           <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-md">
-              <h3 className="font-title-md text-title-md text-on-surface">Next Scheduled Task</h3>
+              <h3 className="title-md text-on-surface">Next Scheduled Task</h3>
               <ClipboardList className="text-outline w-6 h-6" />
             </div>
             <div className="flex items-start gap-sm">
@@ -67,8 +67,8 @@ const Dashboard = () => {
                 <Droplet className="w-6 h-6" />
               </div>
               <div>
-                <p className="font-title-md text-title-md text-on-surface">Fertilizer Application</p>
-                <p className="font-label-sm text-label-sm text-on-surface-variant mt-xs">North Field • Today, 2:00 PM</p>
+                <p className="title-md text-on-surface">Fertilizer Application</p>
+                <p className="label-sm text-on-surface-variant mt-xs">North Field • Today, 2:00 PM</p>
               </div>
             </div>
           </div>
@@ -79,7 +79,7 @@ const Dashboard = () => {
           {/* Left 2/3: Field Map Overview */}
           <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
             <div className="p-md border-b border-outline-variant flex justify-between items-center">
-              <h3 className="font-title-md text-title-md text-on-surface">Field Map Overview</h3>
+              <h3 className="title-md text-on-surface">Field Map Overview</h3>
               <button className="text-primary hover:text-secondary-fixed-dim transition-colors border-none bg-transparent cursor-pointer">
                 <Maximize className="w-6 h-6" />
               </button>
@@ -102,24 +102,24 @@ const Dashboard = () => {
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm flex flex-col">
             <div className="p-md border-b border-outline-variant flex gap-sm items-center">
               <Brain className="text-primary w-6 h-6" />
-              <h3 className="font-title-md text-title-md text-on-surface">Quick Advisory</h3>
+              <h3 className="title-md text-on-surface">Quick Advisory</h3>
             </div>
             <div className="p-md flex-1 flex flex-col gap-md">
               <div className="bg-surface-container-low rounded-lg p-sm border border-outline-variant">
                 <div className="flex justify-between items-start mb-sm">
                   <span className="bg-error-container text-on-error-container px-2 py-1 rounded-sm text-xs font-bold uppercase tracking-wider">New Diagnosis</span>
-                  <span className="font-label-sm text-label-sm text-on-surface-variant">2 hrs ago</span>
+                  <span className="label-sm text-on-surface-variant">2 hrs ago</span>
                 </div>
-                <p className="font-title-md text-body-md font-bold text-on-surface mb-xs">Downy Mildew detected</p>
-                <p className="font-body-md text-body-md text-on-surface-variant mb-sm">Initial signs identified on Cucumber leaves in Greenhouse B.</p>
+                <p className="title-md body-md font-bold text-on-surface mb-xs">Downy Mildew detected</p>
+                <p className="body-md text-on-surface-variant mb-sm">Initial signs identified on Cucumber leaves in Greenhouse B.</p>
                 <div className="flex gap-sm">
-                  <button className="px-md py-sm bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:bg-secondary transition-colors w-full text-center border-none cursor-pointer">
+                  <button className="px-md py-sm bg-primary text-on-primary rounded-lg label-sm hover:bg-secondary transition-colors w-full text-center border-none cursor-pointer">
                     View Full Chat
                   </button>
                 </div>
               </div>
               <div className="mt-auto pt-md border-t border-outline-variant text-center">
-                <a className="font-label-sm text-label-sm text-primary hover:underline no-underline" href="#">View All Advisory History</a>
+                <a className="label-sm text-primary hover:underline no-underline" href="#">View All Advisory History</a>
               </div>
             </div>
           </div>
@@ -129,52 +129,52 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md pb-lg">
           {/* Soil Health Preview */}
           <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm">
-            <h3 className="font-title-md text-title-md text-on-surface mb-md">Soil Health Preview</h3>
+            <h3 className="title-md text-on-surface mb-md">Soil Health Preview</h3>
             <div className="flex justify-around items-end h-32 mb-sm border-b border-outline-variant pb-2">
               <div className="flex flex-col items-center gap-xs w-full">
                 <div className="w-8 bg-primary rounded-t-sm" style={{height: '60%'}}></div>
-                <span className="font-label-sm text-label-sm text-on-surface-variant">N</span>
+                <span className="label-sm text-on-surface-variant">N</span>
               </div>
               <div className="flex flex-col items-center gap-xs w-full">
                 <div className="w-8 bg-tertiary rounded-t-sm" style={{height: '40%'}}></div>
-                <span className="font-label-sm text-label-sm text-on-surface-variant">P</span>
+                <span className="label-sm text-on-surface-variant">P</span>
               </div>
               <div className="flex flex-col items-center gap-xs w-full">
                 <div className="w-8 bg-secondary-container rounded-t-sm" style={{height: '80%'}}></div>
-                <span className="font-label-sm text-label-sm text-on-surface-variant">K</span>
+                <span className="label-sm text-on-surface-variant">K</span>
               </div>
             </div>
-            <p className="font-body-md text-body-md text-on-surface-variant text-center">Nitrogen levels slightly low in South Field.</p>
+            <p className="body-md text-on-surface-variant text-center">Nitrogen levels slightly low in South Field.</p>
           </div>
           
           {/* Weather Forecast */}
           <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm">
-            <h3 className="font-title-md text-title-md text-on-surface mb-md">Weekly Weather Forecast</h3>
+            <h3 className="title-md text-on-surface mb-md">Weekly Weather Forecast</h3>
             <div className="grid grid-cols-5 gap-sm text-center">
               <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Mon</span>
+                <span className="label-sm text-on-surface-variant">Mon</span>
                 <Sun className="text-outline w-6 h-6" />
-                <span className="font-body-md text-on-surface">72&deg;</span>
+                <span className="body-md text-on-surface">72&deg;</span>
               </div>
               <div className="flex flex-col items-center gap-xs p-xs rounded bg-secondary-container text-on-secondary-container">
-                <span className="font-label-sm text-label-sm font-bold">Tue</span>
+                <span className="label-sm font-bold">Tue</span>
                 <CloudSun className="w-6 h-6" />
-                <span className="font-body-md font-bold">68&deg;</span>
+                <span className="body-md font-bold">68&deg;</span>
               </div>
               <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Wed</span>
+                <span className="label-sm text-on-surface-variant">Wed</span>
                 <CloudRain className="text-outline w-6 h-6" />
-                <span className="font-body-md text-on-surface">65&deg;</span>
+                <span className="body-md text-on-surface">65&deg;</span>
               </div>
               <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Thu</span>
+                <span className="label-sm text-on-surface-variant">Thu</span>
                 <Cloud className="text-outline w-6 h-6" />
-                <span className="font-body-md text-on-surface">66&deg;</span>
+                <span className="body-md text-on-surface">66&deg;</span>
               </div>
               <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Fri</span>
+                <span className="label-sm text-on-surface-variant">Fri</span>
                 <Sun className="text-outline w-6 h-6" />
-                <span className="font-body-md text-on-surface">70&deg;</span>
+                <span className="body-md text-on-surface">70&deg;</span>
               </div>
             </div>
           </div>

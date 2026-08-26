@@ -276,10 +276,10 @@ const CropCalendar = () => {
       {/* HEADER */}
       <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-sm">
         <div>
-          <h1 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
+          <h1 className="headline-lg-mobile md:headline-lg headline-lg-mobile md:headline-lg text-on-surface">
             Crop Calendar
           </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+          <p className="body-md text-on-surface-variant mt-1">
             Track sowing, growth stages and harvest windows across all fields
           </p>
         </div>
@@ -289,7 +289,7 @@ const CropCalendar = () => {
           className="self-start md:self-auto flex items-center justify-center gap-2 px-md py-sm bg-primary text-on-primary rounded-xl font-bold shadow-sm hover:opacity-90 transition-all"
         >
           <Plus className="w-5 h-5" />
-          <span className="font-label-sm text-label-sm">Add Crop Event</span>
+          <span className="label-sm">Add Crop Event</span>
         </button>
       </section>
 
@@ -309,8 +309,8 @@ const CropCalendar = () => {
               <div className={`w-11 h-11 rounded-full ${card.iconBg} flex items-center justify-center mb-4`}>
                 <Icon className={`w-5 h-5 ${card.color}`} />
               </div>
-              <p className="font-label-sm text-label-sm text-on-surface-variant">{card.label}</p>
-              <p className={`mt-1 font-headline-lg-mobile text-headline-lg-mobile ${card.color}`}>
+              <p className="label-sm text-on-surface-variant">{card.label}</p>
+              <p className={`mt-1 headline-lg-mobile ${card.color}`}>
                 {card.value}
               </p>
             </div>
@@ -319,7 +319,7 @@ const CropCalendar = () => {
       </section>
 
       {/* LEGEND */}
-      <section className="flex flex-wrap items-center gap-md text-label-sm text-on-surface-variant">
+      <section className="flex flex-wrap items-center gap-md label-sm text-on-surface-variant">
         {legendItems.map((item) => (
           <div key={item.label} className="flex items-center gap-xs">
             <span className={`w-3 h-3 rounded-full ${item.color}`} />
@@ -340,7 +340,7 @@ const CropCalendar = () => {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <h2 className="font-title-md text-title-md text-on-surface">{month}</h2>
+          <h2 className="title-md text-on-surface">{month}</h2>
 
           <button
             onClick={handleNextMonth}
@@ -354,7 +354,7 @@ const CropCalendar = () => {
         {/* Weekday Header */}
         <div className="grid grid-cols-7 border-b border-outline-variant">
           {weekdays.map((day) => (
-            <div key={day} className="py-3 text-center font-label-sm text-label-sm font-semibold text-on-surface-variant">
+            <div key={day} className="py-3 text-center label-sm font-semibold text-on-surface-variant">
               {day}
             </div>
           ))}
@@ -421,7 +421,7 @@ const CropCalendar = () => {
 
       {/* UPCOMING TASKS */}
       <section className="bg-surface-container-low rounded-2xl border border-outline-variant p-md shadow-sm">
-        <h3 className="font-title-md text-title-md text-on-surface mb-sm">Upcoming Tasks</h3>
+        <h3 className="title-md text-on-surface mb-sm">Upcoming Tasks</h3>
 
         {loading ? (
           <p className="text-sm text-on-surface-variant">Loading...</p>
@@ -441,7 +441,7 @@ const CropCalendar = () => {
                       <Icon className={`w-5 h-5 ${task.iconColor}`} />
                     </div>
 
-                    <p className="font-body-md text-body-md text-on-surface flex-1">{task.text}</p>
+                    <p className="body-md text-on-surface flex-1">{task.text}</p>
 
                     <span className={`hidden sm:block text-sm font-semibold ${task.metaColor}`}>
                       {task.meta}
@@ -489,7 +489,7 @@ const CropCalendar = () => {
             }}
           >
             <div className="flex items-center justify-between px-md py-sm border-b border-outline-variant">
-              <h3 className="font-title-md text-title-md text-on-surface">Add Crop Event</h3>
+              <h3 className="title-md text-on-surface">Add Crop Event</h3>
               <button
                 onClick={closeModal}
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors"
@@ -503,7 +503,7 @@ const CropCalendar = () => {
               {formError && <p className="text-error text-sm">{formError}</p>}
 
               <div>
-                <label className="text-label-sm text-on-surface-variant">Title *</label>
+                <label className="label-sm text-on-surface-variant">Title *</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -514,7 +514,7 @@ const CropCalendar = () => {
               </div>
 
               <div>
-                <label className="text-label-sm text-on-surface-variant">Event Type *</label>
+                <label className="label-sm text-on-surface-variant">Event Type *</label>
                 <select
                   value={formData.eventType}
                   onChange={(e) => handleFormChange("eventType", e.target.value)}
@@ -529,7 +529,7 @@ const CropCalendar = () => {
               </div>
 
               <div>
-                <label className="text-label-sm text-on-surface-variant">Date *</label>
+                <label className="label-sm text-on-surface-variant">Date *</label>
                 <input
                   type="date"
                   value={formData.date}
@@ -540,7 +540,7 @@ const CropCalendar = () => {
 
               <div className="grid grid-cols-2 gap-sm">
                 <div>
-                  <label className="text-label-sm text-on-surface-variant">Crop</label>
+                  <label className="label-sm text-on-surface-variant">Crop</label>
                   <input
                     type="text"
                     value={formData.crop}
@@ -550,7 +550,7 @@ const CropCalendar = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-label-sm text-on-surface-variant">Field</label>
+                  <label className="label-sm text-on-surface-variant">Field</label>
                   <input
                     type="text"
                     value={formData.field}
@@ -562,7 +562,7 @@ const CropCalendar = () => {
               </div>
 
               <div>
-                <label className="text-label-sm text-on-surface-variant">Farmer ID *</label>
+                <label className="label-sm text-on-surface-variant">Farmer ID *</label>
                 <input
                   type="text"
                   value={formData.farmerId}
@@ -574,7 +574,7 @@ const CropCalendar = () => {
 
               <div className="grid grid-cols-2 gap-sm">
                 <div>
-                  <label className="text-label-sm text-on-surface-variant">Medicine Name</label>
+                  <label className="label-sm text-on-surface-variant">Medicine Name</label>
                   <input
                     type="text"
                     value={formData.medicineName}
@@ -584,7 +584,7 @@ const CropCalendar = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-label-sm text-on-surface-variant">Dosage</label>
+                  <label className="label-sm text-on-surface-variant">Dosage</label>
                   <input
                     type="text"
                     value={formData.dosage}
@@ -596,7 +596,7 @@ const CropCalendar = () => {
               </div>
 
               <div>
-                <label className="text-label-sm text-on-surface-variant">Notes</label>
+                <label className="label-sm text-on-surface-variant">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => handleFormChange("notes", e.target.value)}
