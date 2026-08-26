@@ -50,6 +50,59 @@ async def ask_agent(request: AgentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class SoilData(BaseModel):
+    moisture: int
+    ph: float
+    nitrogen: str
+    phosphorus: str
+    potassium: str
+    temperature: int
+    weather_condition: Optional[str] = None
+
+@app.post("/analyze-soil")
+async def analyze_soil(data: SoilData):
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        import json
+        
+        llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0)
+        
+        prompt = f"""
+        You are an expert agricultural AI. Based on the following soil and weather data, 
+        provide 2 to 3 short, actionable advisories.
+        
+        Data:
+        Moisture: {data.moisture}%
+        pH: {data.ph}
+        Nitrogen: {data.nitrogen}
+        Phosphorus: {data.phosphorus}
+        Potassium: {data.potassium}
+        Temperature: {data.temperature}°C
+        Weather: {data.weather_condition}
+        
+        Reply ONLY with a JSON array of objects. Each object must have:
+        "title" (string, short e.g. "Apply Nitrogen"),
+        "description" (string, 1 short sentence),
+        "severity" (string, either "critical", "warning", or "info").
+        """
+        
+        response = llm.invoke(prompt)
+        content = str(response.content).strip()
+        if isinstance(response.content, str):
+            content = response.content.strip()
+        elif hasattr(response, "text"):
+            content = response.text.strip()
+            
+        if content.startswith("```json"):
+            content = content[7:-3]
+            
+        advisories = json.loads(content)
+        return {"advisories": advisories}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
