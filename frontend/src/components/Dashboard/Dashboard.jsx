@@ -1,7 +1,38 @@
-
-import { Leaf, AlertTriangle, ClipboardList, Droplet, Maximize, Brain, Sun, CloudSun, CloudRain, Cloud } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Leaf, AlertTriangle, ClipboardList, Droplet, Maximize, Brain, Sun, CloudSun, CloudRain, Cloud, Loader2 } from 'lucide-react';
 
 const Dashboard = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/dashboard");
+        setData(response.data.data);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="flex-1 overflow-y-auto p-margin-mobile md:p-gutter flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </main>
+    );
+  }
+
+  // Fallbacks if data fails
+  const soil = data?.soil_metrics || { moisture: 0, ph: 0, nitrogen: "Unknown" };
+  const advisories = data?.ai_advisories || [];
+  const weather = data?.weather_forecast || [];
+
   return (
     <main className="flex-1 overflow-y-auto p-margin-mobile md:p-gutter">
       <div className="max-w-[1280px] mx-auto flex flex-col gap-gutter">
@@ -9,12 +40,12 @@ const Dashboard = () => {
         {/* Welcome Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-sm">
           <div>
-            <p className="label-sm text-on-surface-variant mb-xs">October 24, 2023</p>
-            <h2 className="headline-lg-mobile md:headline-lg headline-lg-mobile md:headline-lg text-on-surface">Welcome back, Farmer John</h2>
+            <p className="label-sm text-on-surface-variant mb-xs">Today</p>
+            <h2 className="headline-lg-mobile md:headline-lg headline-lg-mobile md:headline-lg text-on-surface">Welcome back, Farmer</h2>
           </div>
           <div className="bg-surface px-md py-sm rounded-lg border border-outline-variant">
             <p className="body-md text-on-surface-variant">
-              All <span className="font-bold text-primary">4</span> fields are currently healthy. <span className="font-bold text-tertiary">2</span> tasks require attention today.
+              System is monitoring <span className="font-bold text-primary">live</span> telemetry data.
             </p>
           </div>
         </div>
@@ -29,11 +60,11 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-md">
               <div className="w-16 h-16 rounded-full border-4 border-primary border-r-surface-variant flex items-center justify-center transform rotate-45">
-                <span className="title-md text-primary transform -rotate-45">92%</span>
+                <span className="title-md text-primary transform -rotate-45">{(soil.moisture + soil.ph * 10).toFixed(0)}%</span>
               </div>
               <div>
                 <p className="label-sm text-on-surface-variant">Overall farm vitality</p>
-                <p className="font-body-sm text-primary mt-xs">+2% from last week</p>
+                <p className="font-body-sm text-primary mt-xs">Calculated from AI metrics</p>
               </div>
             </div>
           </div>
@@ -47,11 +78,15 @@ const Dashboard = () => {
             <div className="flex flex-col gap-sm">
               <div className="flex justify-between items-center bg-surface-container-low px-sm py-xs rounded-lg">
                 <span className="label-sm text-on-surface-variant">Critical</span>
-                <span className="bg-error-container text-on-error-container px-2 py-0.5 rounded text-xs font-bold">0</span>
+                <span className="bg-error-container text-on-error-container px-2 py-0.5 rounded text-xs font-bold">
+                  {advisories.filter(a => a.severity === 'critical').length}
+                </span>
               </div>
               <div className="flex justify-between items-center bg-surface-container-low px-sm py-xs rounded-lg">
                 <span className="label-sm text-on-surface-variant">Warnings</span>
-                <span className="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-xs font-bold">2</span>
+                <span className="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-xs font-bold">
+                  {advisories.filter(a => a.severity === 'warning').length}
+                </span>
               </div>
             </div>
           </div>
@@ -68,7 +103,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="title-md text-on-surface">Fertilizer Application</p>
-                <p className="label-sm text-on-surface-variant mt-xs">North Field • Today, 2:00 PM</p>
+                <p className="label-sm text-on-surface-variant mt-xs">Based on {soil.nitrogen} Nitrogen</p>
               </div>
             </div>
           </div>
@@ -91,10 +126,6 @@ const Dashboard = () => {
                 <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-sm mb-1 animate-pulse"></div>
                 <span className="bg-surface px-2 py-1 rounded text-xs font-bold text-on-surface shadow">North Field</span>
               </div>
-              <div className="absolute top-1/2 right-1/3 flex flex-col items-center">
-                <div className="w-4 h-4 bg-tertiary rounded-full border-2 border-white shadow-sm mb-1"></div>
-                <span className="bg-surface px-2 py-1 rounded text-xs font-bold text-on-surface shadow">East Plot</span>
-              </div>
             </div>
           </div>
           
@@ -104,23 +135,21 @@ const Dashboard = () => {
               <Brain className="text-primary w-6 h-6" />
               <h3 className="title-md text-on-surface">Quick Advisory</h3>
             </div>
-            <div className="p-md flex-1 flex flex-col gap-md">
-              <div className="bg-surface-container-low rounded-lg p-sm border border-outline-variant">
-                <div className="flex justify-between items-start mb-sm">
-                  <span className="bg-error-container text-on-error-container px-2 py-1 rounded-sm text-xs font-bold uppercase tracking-wider">New Diagnosis</span>
-                  <span className="label-sm text-on-surface-variant">2 hrs ago</span>
+            <div className="p-md flex-1 flex flex-col gap-md overflow-y-auto max-h-80">
+              {advisories.length > 0 ? advisories.map((adv, idx) => (
+                <div key={idx} className="bg-surface-container-low rounded-lg p-sm border border-outline-variant">
+                  <div className="flex justify-between items-start mb-sm">
+                    <span className={`px-2 py-1 rounded-sm text-xs font-bold uppercase tracking-wider ${adv.severity === 'critical' ? 'bg-error-container text-on-error-container' : 'bg-tertiary-container text-on-tertiary-container'}`}>
+                      {adv.severity}
+                    </span>
+                    <span className="label-sm text-on-surface-variant">Live</span>
+                  </div>
+                  <p className="title-md body-md font-bold text-on-surface mb-xs">{adv.title}</p>
+                  <p className="body-md text-on-surface-variant mb-sm">{adv.description}</p>
                 </div>
-                <p className="title-md body-md font-bold text-on-surface mb-xs">Downy Mildew detected</p>
-                <p className="body-md text-on-surface-variant mb-sm">Initial signs identified on Cucumber leaves in Greenhouse B.</p>
-                <div className="flex gap-sm">
-                  <button className="px-md py-sm bg-primary text-on-primary rounded-lg label-sm hover:bg-secondary transition-colors w-full text-center border-none cursor-pointer">
-                    View Full Chat
-                  </button>
-                </div>
-              </div>
-              <div className="mt-auto pt-md border-t border-outline-variant text-center">
-                <a className="label-sm text-primary hover:underline no-underline" href="#">View All Advisory History</a>
-              </div>
+              )) : (
+                <p className="text-on-surface-variant">No advisories at this time.</p>
+              )}
             </div>
           </div>
         </div>
@@ -132,51 +161,41 @@ const Dashboard = () => {
             <h3 className="title-md text-on-surface mb-md">Soil Health Preview</h3>
             <div className="flex justify-around items-end h-32 mb-sm border-b border-outline-variant pb-2">
               <div className="flex flex-col items-center gap-xs w-full">
-                <div className="w-8 bg-primary rounded-t-sm" style={{height: '60%'}}></div>
+                <div className={`w-8 rounded-t-sm ${soil.nitrogen === 'Optimal' ? 'bg-primary' : 'bg-tertiary'}`} style={{height: soil.nitrogen === 'Optimal' ? '80%' : '40%'}}></div>
                 <span className="label-sm text-on-surface-variant">N</span>
               </div>
               <div className="flex flex-col items-center gap-xs w-full">
-                <div className="w-8 bg-tertiary rounded-t-sm" style={{height: '40%'}}></div>
+                <div className={`w-8 rounded-t-sm ${soil.phosphorus === 'Optimal' ? 'bg-primary' : 'bg-tertiary'}`} style={{height: soil.phosphorus === 'Optimal' ? '80%' : '40%'}}></div>
                 <span className="label-sm text-on-surface-variant">P</span>
               </div>
               <div className="flex flex-col items-center gap-xs w-full">
-                <div className="w-8 bg-secondary-container rounded-t-sm" style={{height: '80%'}}></div>
+                <div className={`w-8 rounded-t-sm ${soil.potassium === 'Optimal' ? 'bg-primary' : 'bg-tertiary'}`} style={{height: soil.potassium === 'Optimal' ? '80%' : '40%'}}></div>
                 <span className="label-sm text-on-surface-variant">K</span>
               </div>
             </div>
-            <p className="body-md text-on-surface-variant text-center">Nitrogen levels slightly low in South Field.</p>
+            <p className="body-md text-on-surface-variant text-center">Nitrogen is {soil.nitrogen.toLowerCase()}, Phosphorus is {soil.phosphorus.toLowerCase()}.</p>
           </div>
           
           {/* Weather Forecast */}
           <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm">
             <h3 className="title-md text-on-surface mb-md">Weekly Weather Forecast</h3>
-            <div className="grid grid-cols-5 gap-sm text-center">
-              <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="label-sm text-on-surface-variant">Mon</span>
-                <Sun className="text-outline w-6 h-6" />
-                <span className="body-md text-on-surface">72&deg;</span>
+            {weather.length > 0 ? (
+              <div className="grid grid-cols-5 gap-sm text-center">
+                {weather.slice(0, 5).map((w, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
+                    <span className="label-sm text-on-surface-variant">
+                      {new Date(w.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                    </span>
+                    {w.condition.toLowerCase().includes('cloud') ? <Cloud className="text-outline w-6 h-6" /> :
+                     w.condition.toLowerCase().includes('rain') ? <CloudRain className="text-outline w-6 h-6" /> :
+                     <Sun className="text-outline w-6 h-6" />}
+                    <span className="body-md text-on-surface">{w.temp}&deg;</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex flex-col items-center gap-xs p-xs rounded bg-secondary-container text-on-secondary-container">
-                <span className="label-sm font-bold">Tue</span>
-                <CloudSun className="w-6 h-6" />
-                <span className="body-md font-bold">68&deg;</span>
-              </div>
-              <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="label-sm text-on-surface-variant">Wed</span>
-                <CloudRain className="text-outline w-6 h-6" />
-                <span className="body-md text-on-surface">65&deg;</span>
-              </div>
-              <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="label-sm text-on-surface-variant">Thu</span>
-                <Cloud className="text-outline w-6 h-6" />
-                <span className="body-md text-on-surface">66&deg;</span>
-              </div>
-              <div className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                <span className="label-sm text-on-surface-variant">Fri</span>
-                <Sun className="text-outline w-6 h-6" />
-                <span className="body-md text-on-surface">70&deg;</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-on-surface-variant text-center my-4">Add OpenWeather API key to view forecast.</p>
+            )}
           </div>
         </div>
         

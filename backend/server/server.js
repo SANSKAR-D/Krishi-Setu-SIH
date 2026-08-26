@@ -4,7 +4,8 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 
 const eventRoutes = require("./routes/eventRoutes");
-const chatRoutes = require("./routes/chatRoutes"); // Add chatRoutes
+const chatRoutes = require("./routes/chatRoutes"); 
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
@@ -34,7 +35,8 @@ app.get("/", (req, res) => {
 
 // ---------- Routes ----------
 app.use("/api", eventRoutes);
-app.use("/api", chatRoutes); // Register chatRoutes
+app.use("/api", chatRoutes); 
+app.use("/api", dashboardRoutes);
 
 // ---------- Start Server ----------
 const PORT = process.env.PORT || 5000;
