@@ -1,10 +1,8 @@
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
-const { OpenAI } = require('openai');
+const { GoogleGenAI } = require('@google/genai');
 const axios = require('axios');
 const fs = require('fs');
-const path = require('path');
-const os = require('os');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -13,9 +11,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configure OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Configure Google GenAI
+const ai = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_API_KEY,
 });
 
 const uploadToCloudinary = (fileBuffer) => {
@@ -46,45 +44,34 @@ const handleChatRequest = async (req, res) => {
       imageUrl = await uploadToCloudinary(imageFile.buffer);
     }
 
-    // 2. Handle Audio or Text
+    // 2. Handle Audio or Text via Gemini
     if (audioFile) {
-      // Whisper needs a file with extension, so we write the buffer to a temp file
-      const tempFilePath = path.join(os.tmpdir(), `audio_${Date.now()}.webm`);
-      fs.writeFileSync(tempFilePath, audioFile.buffer);
-
-      const transcription = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(tempFilePath),
-        model: 'whisper-1',
-      });
-      fs.unlinkSync(tempFilePath); // cleanup
-      
-      const transcribedText = transcription.text;
-      
-      // Translate to English and detect language
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are a helpful assistant. Translate the following text to English, and reply ONLY with a JSON object in this format: {\"translated_text\": \"...\", \"original_language\": \"...\"}" },
-          { role: "user", content: transcribedText }
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { inlineData: { data: audioFile.buffer.toString("base64"), mimeType: audioFile.mimetype } },
+              { text: "Transcribe this audio, translate it to English, and reply ONLY with a JSON object in this format: {\"translated_text\": \"...\", \"original_language\": \"...\"}" }
+            ]
+          }
         ],
-        response_format: { type: "json_object" }
+        config: { responseMimeType: "application/json" }
       });
       
-      const result = JSON.parse(completion.choices[0].message.content);
+      const result = JSON.parse(response.text);
       finalEnglishQuery = result.translated_text;
       originalLanguage = result.original_language;
 
     } else if (textMessage) {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are a helpful assistant. Translate the following text to English, and reply ONLY with a JSON object in this format: {\"translated_text\": \"...\", \"original_language\": \"...\"}" },
-          { role: "user", content: textMessage }
-        ],
-        response_format: { type: "json_object" }
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: `Translate the following text to English, and reply ONLY with a JSON object in this format: {"translated_text": "...", "original_language": "..."}\n\nText: ${textMessage}`,
+        config: { responseMimeType: "application/json" }
       });
       
-      const result = JSON.parse(completion.choices[0].message.content);
+      const result = JSON.parse(response.text);
       finalEnglishQuery = result.translated_text;
       originalLanguage = result.original_language;
     } else {
@@ -104,14 +91,11 @@ const handleChatRequest = async (req, res) => {
     // 4. Translate response back to original language if it was not English
     let translatedResponse = agentResponseText;
     if (originalLanguage && originalLanguage.toLowerCase() !== 'english') {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: `You are an expert agricultural AI. Translate the following English response into ${originalLanguage}. Make sure it sounds natural and retains agricultural terminology context.` },
-          { role: "user", content: agentResponseText }
-        ],
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: `You are an expert agricultural AI. Translate the following English response into ${originalLanguage}. Make sure it sounds natural and retains agricultural terminology context.\n\nText: ${agentResponseText}`
       });
-      translatedResponse = completion.choices[0].message.content;
+      translatedResponse = response.text;
     }
 
     // 5. Send final response to Frontend
