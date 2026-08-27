@@ -12,9 +12,9 @@ const upload = multer({ storage: storage });
 router.post('/chat', upload.fields([
   { 
     name: 'image', 
-    maxCount: 5 
+    maxCount: 5
   }, { 
-    name: 'audio', 
+    name: 'audio',
     maxCount: 1 
   }
 ]), handleChatRequest);

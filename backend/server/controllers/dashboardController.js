@@ -50,10 +50,42 @@ const getDashboardData = async (req, res) => {
     // Fetch AI advisories
     let aiAdvisories = [];
     try {
-      const aiResponse = await axios.post("http://localhost:8000/analyze-soil", soilMetrics);
-      aiAdvisories = aiResponse.data.advisories || [];
+      const { GoogleGenAI } = require('@google/genai');
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GOOGLE_API_KEY,
+      });
+
+      const prompt = `
+      You are an expert agricultural AI. Based on the following soil and weather data, 
+      provide 2 to 3 short, actionable advisories.
+      
+      Data:
+      Moisture: ${soilMetrics.moisture}%
+      pH: ${soilMetrics.ph}
+      Nitrogen: ${soilMetrics.nitrogen}
+      Phosphorus: ${soilMetrics.phosphorus}
+      Potassium: ${soilMetrics.potassium}
+      Temperature: ${soilMetrics.temperature}°C
+      Weather: ${soilMetrics.weather_condition}
+      
+      Reply ONLY with a JSON array of objects. Each object must have:
+      "title" (string, short e.g. "Apply Nitrogen"),
+      "description" (string, 1 short sentence),
+      "severity" (string, either "critical", "warning", or "info").
+      `;
+
+      const aiResponse = await ai.models.generateContent({
+        model: 'gemini-3.5-flash-lite',
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+      
+      const content = aiResponse.text.trim();
+      aiAdvisories = JSON.parse(content);
     } catch (aiErr) {
-      console.error("Error fetching AI advisories:", aiErr.message);
+      console.error("Error generating AI advisories in node:", aiErr.message);
     }
 
     res.json({
