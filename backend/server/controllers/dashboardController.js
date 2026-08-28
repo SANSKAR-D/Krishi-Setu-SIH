@@ -29,7 +29,7 @@ const getDashboardData = async (req, res) => {
     let weatherData = null;
     let weatherCondition = "Sunny"; // default
 
-    if (apiKey && apiKey !== "your_openweather_api_key") {
+    if (apiKey) {
       try {
         const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${location}&units=metric&cnt=5&appid=${apiKey}`;
         const response = await axios.get(weatherUrl);
