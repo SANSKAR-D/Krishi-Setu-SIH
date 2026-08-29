@@ -2,7 +2,7 @@ const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 const { GoogleGenAI } = require('@google/genai');
 const axios = require('axios');
-const fs = require('fs');
+// const fs = require('fs');
 
 // Configure Cloudinary
 cloudinary.config({
