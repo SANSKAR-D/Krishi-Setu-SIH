@@ -19,28 +19,23 @@ import {
 
 const ExpertChat = () => {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem("krishiSetuChatHistory");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse chat history:", e);
-        return [];
-      }
-    }
-    return [];
-  });
-
-  // Save messages to localStorage whenever they change
+  const [messages, setMessages] = useState([]);
+  
   useEffect(() => {
-    // Clear out blob URLs so they don't break on reload
-    const messagesToSave = messages.map(msg => ({
-      ...msg,
-      image: null 
-    }));
-    localStorage.setItem("krishiSetuChatHistory", JSON.stringify(messagesToSave));
-  }, [messages]);
+    // Fetch chat history from MongoDB on mount
+    const fetchHistory = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/chat/history");
+        if (response.data.success && response.data.messages) {
+          setMessages(response.data.messages);
+        }
+      } catch (err) {
+        console.error("Failed to load chat history", err);
+      }
+    };
+    fetchHistory();
+  }, []);
+  
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   
@@ -145,21 +140,11 @@ const ExpertChat = () => {
     <main className="flex-1 flex flex-col relative bg-surface-bright overflow-hidden">
       <div className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop scroll-smooth pb-32">
         <div className="max-w-[800px] mx-auto flex flex-col gap-md">
-          {/* Date separator & Clear Chat */}
+          {/* Date separator */}
           <div className="flex justify-center items-center my-4 relative">
             <span className="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full label-sm">
               Today
             </span>
-            {messages.length > 0 && (
-              <button 
-                onClick={() => setMessages([])}
-                className="absolute right-0 flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-error bg-error/10 hover:bg-error/20 hover:text-error rounded-full transition-colors border-none cursor-pointer"
-                title="Clear Chat History"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Clear History</span>
-              </button>
-            )}
           </div>
 
           {messages.length === 0 && (
