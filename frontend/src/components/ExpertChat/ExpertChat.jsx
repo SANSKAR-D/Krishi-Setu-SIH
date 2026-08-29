@@ -45,6 +45,15 @@ const ExpertChat = () => {
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -196,6 +205,7 @@ const ExpertChat = () => {
                 </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
