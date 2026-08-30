@@ -6,6 +6,7 @@ const axios = require('axios');
 const fs = require('fs');
 const ChatHistory = require('../models/ChatHistory');
 const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -18,6 +19,64 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY,
 });
 
+const TRANSLATION_MODEL = "gemini-3.5-flash-lite";
+
+// ─── Helper: safely parse JSON from Gemini (strips markdown fences) ───
+function safeJsonParse(text) {
+  const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+  return JSON.parse(cleaned);
+}
+
+// ─── Helper: Translate text to English ───
+async function translateTextToEnglish(text) {
+  const response = await ai.models.generateContent({
+    model: TRANSLATION_MODEL,
+    contents: `Analyze this text and translate it to English.
+
+RULES:
+- If the text is already in pure English, set original_language to "English" and copy the text as-is into translated_text.
+- If the text uses English letters but contains Hindi/Urdu words (e.g. "kya", "hai", "kaise", "accha", "tumhare", "mein", "khet"), set original_language to "Hinglish".
+- For any other language (Hindi in Devanagari, Tamil, Marathi, etc.), set original_language to that language name.
+- Do NOT answer, summarize, or change the meaning. Only translate.
+
+Text: "${text}"
+
+Reply ONLY with a JSON object: {"translated_text": "...", "original_language": "..."}`,
+    config: { responseMimeType: "application/json" }
+  });
+  return safeJsonParse(response.text);
+}
+
+// ─── Helper: Translate English response back to user's language ───
+async function translateToUserLanguage(englishText, targetLanguage) {
+  if (!targetLanguage || targetLanguage.toLowerCase() === 'english') {
+    return englishText;
+  }
+
+  try {
+    let languageInstruction = `Translate the following English text into ${targetLanguage}.`;
+
+    if (targetLanguage.toLowerCase() === 'hinglish') {
+      languageInstruction = `Translate the following English text into Hinglish.
+CRITICAL: Write Hindi words using ONLY English letters (Latin script). 
+Example output: "Gehu ek Rabi fasal hai jo October-November mein boi jaati hai."
+Do NOT use Devanagari script. Do NOT just return the English text unchanged.`;
+    }
+
+    const response = await ai.models.generateContent({
+      model: TRANSLATION_MODEL,
+      contents: `${languageInstruction}
+
+Text: ${englishText}`
+    });
+    return response.text;
+  } catch (err) {
+    console.error("⚠️ Back-translation failed, returning English:", err.message);
+    return englishText;
+  }
+}
+
+// ─── Cloudinary upload helper ───
 const uploadToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -31,6 +90,7 @@ const uploadToCloudinary = (fileBuffer) => {
   });
 };
 
+// ─── Get chat history ───
 const getChatHistory = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -46,71 +106,52 @@ const getChatHistory = async (req, res) => {
   }
 };
 
+// ─── Main chat handler ───
 const handleChatRequest = async (req, res) => {
   try {
     const userId = req.user.id;
     const textMessage = req.body.message;
     const imageFiles = req.files && req.files['image'] ? req.files['image'] : [];
-    const audioFile = req.files && req.files['audio'] ? req.files['audio'][0] : null;
     
     let imageUrls = null;
     let finalEnglishQuery = '';
     let originalLanguage = 'English'; 
 
+    // 1. Upload images to Cloudinary
     if (imageFiles.length > 0) {
       imageUrls = await Promise.all(imageFiles.map(file => uploadToCloudinary(file.buffer)));
     }
 
-    if (audioFile) {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { inlineData: { data: audioFile.buffer.toString("base64"), mimeType: audioFile.mimetype } },
-              { text: "Transcribe this audio, translate it to English, and reply ONLY with a JSON object in this format: {\"translated_text\": \"...\", \"original_language\": \"...\"}" }
-            ]
-          }
-        ],
-        config: { responseMimeType: "application/json" }
-      });
-      const result = JSON.parse(response.text);
-      finalEnglishQuery = result.translated_text;
-      originalLanguage = result.original_language;
-
-    } else if (textMessage) {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite",
-        contents: `Translate the following text to English, and reply ONLY with a JSON object in this format: {"translated_text": "...", "original_language": "..."}\n\nText: ${textMessage}`,
-        config: { responseMimeType: "application/json" }
-      });
-      const result = JSON.parse(response.text);
-      finalEnglishQuery = result.translated_text;
-      originalLanguage = result.original_language;
-    } else {
-      return res.status(400).json({ error: "No text or audio message provided." });
+    // 2. Translate user text to English
+    if (!textMessage || !textMessage.trim()) {
+      return res.status(400).json({ error: "No text message provided." });
     }
 
-    // 3. Send query, imageUrls, and userId to FastAPI agent
+    const result = await translateTextToEnglish(textMessage);
+    finalEnglishQuery = result.translated_text;
+    originalLanguage = result.original_language;
+    console.log("📝 Text translation:", { original: textMessage, translated: finalEnglishQuery, language: originalLanguage });
+
+    console.log("=== TRANSLATION PIPELINE ===");
+    console.log("Detected Language:", originalLanguage);
+    console.log("Final English Query:", finalEnglishQuery);
+
+    // 3. Send English query to FastAPI agent
     const fastApiPayload = {
       user_query: finalEnglishQuery,
       image_urls: imageUrls,
-      thread_id: userId // Use MongoDB ObjectId as thread_id
+      thread_id: userId
     };
     const fastApiResponse = await axios.post(`${FASTAPI_URL}/ask`, fastApiPayload);
     const agentResponseText = fastApiResponse.data.final_advice;
     const stateDetails = fastApiResponse.data.state_details;
 
-    // 4. Translate response back
-    let translatedResponse = agentResponseText;
-    if (originalLanguage && originalLanguage.toLowerCase() !== 'english') {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite",
-        contents: `You are an expert agricultural AI. Translate the following English response into ${originalLanguage}. Make sure it sounds natural and retains agricultural terminology context.\n\nText: ${agentResponseText}`
-      });
-      translatedResponse = response.text;
-    }
+    console.log("🤖 FastAPI English response received (" + agentResponseText.length + " chars)");
+
+    // 4. Translate response back to user's language
+    const translatedResponse = await translateToUserLanguage(agentResponseText, originalLanguage);
+
+    console.log("🌐 Back-translated to:", originalLanguage);
 
     // 5. Save to MongoDB ChatHistory
     let history = await ChatHistory.findOne({ userId });
@@ -121,9 +162,8 @@ const handleChatRequest = async (req, res) => {
     // Add user message
     history.messages.push({
       role: 'user',
-      text: textMessage || "Audio Message",
-      image: imageUrls,
-      hasAudio: !!audioFile
+      text: textMessage,
+      image: imageUrls
     });
     
     // Add AI message

@@ -12,6 +12,6 @@ const { aiLimiter } = require('../middleware/rateLimiter');
 router.get('/chat/history', authMiddleware, getChatHistory);
 
 // POST /api/chat - Protected route with stricter rate limiting
-router.post('/chat', aiLimiter, authMiddleware, upload.fields([{ name: 'image' }, { name: 'audio' }]), handleChatRequest);
+router.post('/chat', aiLimiter, authMiddleware, upload.fields([{ name: 'image' }]), handleChatRequest);
 
 module.exports = router;
