@@ -1,17 +1,22 @@
+const dotenv = require("dotenv");
+dotenv.config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-dotenv.config();
 const eventRoutes = require("./routes/eventRoutes");
 const chatRoutes = require("./routes/chatRoutes"); 
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
 // ---------- Middleware ----------
 app.use(cors());
 app.use(express.json());
+
+const { globalApiLimiter } = require("./middleware/rateLimiter");
+// Apply global rate limiter to all /api routes
+app.use("/api", globalApiLimiter);
 
 // ---------- MongoDB Connection ----------
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -34,6 +39,7 @@ app.get("/", (req, res) => {
 });
 
 // ---------- Routes ----------
+app.use("/api/auth", authRoutes);
 app.use("/api", eventRoutes);
 app.use("/api", chatRoutes); 
 app.use("/api", dashboardRoutes);

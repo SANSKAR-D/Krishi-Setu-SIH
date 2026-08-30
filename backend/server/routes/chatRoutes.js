@@ -1,22 +1,17 @@
 const express = require('express');
 const multer = require('multer');
-const { handleChatRequest } = require('../controllers/chatController');
+const { handleChatRequest, getChatHistory } = require('../controllers/chatController');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
-// Configure multer for memory storage
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const { aiLimiter } = require('../middleware/rateLimiter');
 
-// POST /api/chat
-router.post('/chat', upload.fields([
-  { 
-    name: 'image', 
-    maxCount: 5
-  }, { 
-    name: 'audio',
-    maxCount: 1 
-  }
-]), handleChatRequest);
+// GET /api/chat/history - Get chat history for logged in user
+router.get('/chat/history', authMiddleware, getChatHistory);
+
+// POST /api/chat - Protected route with stricter rate limiting
+router.post('/chat', aiLimiter, authMiddleware, upload.fields([{ name: 'image' }, { name: 'audio' }]), handleChatRequest);
 
 module.exports = router;

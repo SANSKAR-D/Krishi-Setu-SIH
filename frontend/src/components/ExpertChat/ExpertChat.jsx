@@ -1,24 +1,41 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import {
   Bot,
-  AlertTriangle,
-  AlertCircle,
-  ThumbsUp,
-  ShoppingCart,
+  // AlertTriangle,
+  // AlertCircle,
+  // ThumbsUp,
+  // ShoppingCart,
   Camera,
   ImagePlus,
   Mic,
   Send,
-  PlusCircle,
+  // PlusCircle,
   X,
   StopCircle,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 
 const ExpertChat = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  
+  useEffect(() => {
+    // Fetch chat history from MongoDB on mount
+    const fetchHistory = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/chat/history");
+        if (response.data.success && response.data.messages) {
+          setMessages(response.data.messages);
+        }
+      } catch (err) {
+        console.error("Failed to load chat history", err);
+      }
+    };
+    fetchHistory();
+  }, []);
+  
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   
@@ -28,6 +45,15 @@ const ExpertChat = () => {
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -124,7 +150,7 @@ const ExpertChat = () => {
       <div className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop scroll-smooth pb-32">
         <div className="max-w-[800px] mx-auto flex flex-col gap-md">
           {/* Date separator */}
-          <div className="flex justify-center my-4">
+          <div className="flex justify-center items-center my-4 relative">
             <span className="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full label-sm">
               Today
             </span>
@@ -179,6 +205,7 @@ const ExpertChat = () => {
                 </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 

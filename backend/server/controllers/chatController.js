@@ -3,6 +3,7 @@ const streamifier = require('streamifier');
 const { GoogleGenAI } = require('@google/genai');
 const axios = require('axios');
 const fs = require('fs');
+const ChatHistory = require('../models/ChatHistory');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -29,22 +30,36 @@ const uploadToCloudinary = (fileBuffer) => {
   });
 };
 
+const getChatHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    let history = await ChatHistory.findOne({ userId });
+    if (!history) {
+      history = new ChatHistory({ userId, messages: [] });
+      await history.save();
+    }
+    res.json({ success: true, messages: history.messages });
+  } catch (error) {
+    console.error("Error fetching chat history:", error);
+    res.status(500).json({ error: "Failed to fetch chat history" });
+  }
+};
+
 const handleChatRequest = async (req, res) => {
   try {
+    const userId = req.user.id;
     const textMessage = req.body.message;
     const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
     const audioFile = req.files && req.files['audio'] ? req.files['audio'][0] : null;
     
     let imageUrl = null;
     let finalEnglishQuery = '';
-    let originalLanguage = 'English'; // default assumption
+    let originalLanguage = 'English'; 
 
-    // 1. Upload Image to Cloudinary if provided
     if (imageFile) {
       imageUrl = await uploadToCloudinary(imageFile.buffer);
     }
 
-    // 2. Handle Audio or Text via Gemini
     if (audioFile) {
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash-lite",
@@ -59,7 +74,6 @@ const handleChatRequest = async (req, res) => {
         ],
         config: { responseMimeType: "application/json" }
       });
-      
       const result = JSON.parse(response.text);
       finalEnglishQuery = result.translated_text;
       originalLanguage = result.original_language;
@@ -70,7 +84,6 @@ const handleChatRequest = async (req, res) => {
         contents: `Translate the following text to English, and reply ONLY with a JSON object in this format: {"translated_text": "...", "original_language": "..."}\n\nText: ${textMessage}`,
         config: { responseMimeType: "application/json" }
       });
-      
       const result = JSON.parse(response.text);
       finalEnglishQuery = result.translated_text;
       originalLanguage = result.original_language;
@@ -78,17 +91,18 @@ const handleChatRequest = async (req, res) => {
       return res.status(400).json({ error: "No text or audio message provided." });
     }
 
-    // 3. Send query and imageUrl to FastAPI agent
+    // 3. Send query, imageUrl, and userId to FastAPI agent
     const fastApiPayload = {
       user_query: finalEnglishQuery,
-      image_urls: imageUrl ? [imageUrl] : null
+      image_urls: imageUrl ? [imageUrl] : null,
+      thread_id: userId // Use MongoDB ObjectId as thread_id
     };
 
     const fastApiResponse = await axios.post('http://localhost:8000/ask', fastApiPayload);
     const agentResponseText = fastApiResponse.data.final_advice;
     const stateDetails = fastApiResponse.data.state_details;
 
-    // 4. Translate response back to original language if it was not English
+    // 4. Translate response back
     let translatedResponse = agentResponseText;
     if (originalLanguage && originalLanguage.toLowerCase() !== 'english') {
       const response = await ai.models.generateContent({
@@ -98,14 +112,37 @@ const handleChatRequest = async (req, res) => {
       translatedResponse = response.text;
     }
 
-    // 5. Send final response to Frontend
+    // 5. Save to MongoDB ChatHistory
+    let history = await ChatHistory.findOne({ userId });
+    if (!history) {
+      history = new ChatHistory({ userId, messages: [] });
+    }
+    
+    // Add user message
+    history.messages.push({
+      role: 'user',
+      text: textMessage || "Audio Message",
+      image: imageUrl,
+      hasAudio: !!audioFile
+    });
+    
+    // Add AI message
+    history.messages.push({
+      role: 'ai',
+      text: translatedResponse
+    });
+
+    await history.save();
+
+    // 6. Send final response to Frontend
     return res.json({
       success: true,
       original_query: textMessage,
       english_query: finalEnglishQuery,
       detected_language: originalLanguage,
       response: translatedResponse,
-      state_details: stateDetails
+      state_details: stateDetails,
+      history: history.messages
     });
 
   } catch (error) {
@@ -115,5 +152,6 @@ const handleChatRequest = async (req, res) => {
 };
 
 module.exports = {
-  handleChatRequest
+  handleChatRequest,
+  getChatHistory
 };
