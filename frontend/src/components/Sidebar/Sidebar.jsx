@@ -17,7 +17,7 @@ const Sidebar = () => {
           <Brain className="text-on-primary w-6 h-6" />
         </div>
         <div>
-          <h1 className="title-md text-primary leading-tight">AgriExpert AI</h1>
+          <h1 className="title-md text-primary leading-tight">Krishi Setu</h1>
           <p className="label-sm text-on-surface-variant">Precision Agriculture</p>
         </div>
       </div>

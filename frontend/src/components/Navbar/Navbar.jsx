@@ -11,7 +11,7 @@ const Navbar = () => {
   return (
     <header className="flex justify-end items-center w-full px-md h-16 sticky top-0 z-50 bg-surface-bright shadow-sm">
       <div className="flex items-center lg:hidden">
-        <h2 className="title-md text-primary">AgriExpert AI</h2>
+        <h2 className="title-md text-primary">Krishi Setu</h2>
       </div>
       <div className="flex items-center gap-md">
         <div className="flex items-center gap-sm pl-sm">

@@ -166,7 +166,7 @@ const ExpertChat = () => {
               <div className="w-16 h-16 bg-primary-container rounded-2xl flex items-center justify-center mb-6 shadow-sm">
                 <Bot className="w-8 h-8 text-on-primary-container" />
               </div>
-              <h2 className="text-2xl font-semibold text-on-surface mb-2">Welcome to AgriExpert AI</h2>
+              <h2 className="text-2xl font-semibold text-on-surface mb-2">Welcome to Krishi Setu</h2>
               <p className="text-on-surface-variant text-center mb-8 w-full max-w-[500px]">
                 I can help you analyze soil conditions, diagnose crop diseases, predict weather impacts, and plan your farming schedule.
               </p>
@@ -235,7 +235,7 @@ const ExpertChat = () => {
                 </div>
                 <div className="bg-surface border border-outline-variant rounded-2xl rounded-tl-sm p-4 text-on-surface flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  <span>AgriExpert is thinking...</span>
+                  <span>Krishi Setu is thinking...</span>
                 </div>
             </div>
           )}
@@ -315,7 +315,7 @@ const ExpertChat = () => {
         </div>
         <div className="text-center mt-2 max-w-[800px] mx-auto">
           <span className="label-sm text-on-surface-variant/60 text-xs">
-            AgriExpert AI can make mistakes. Verify critical treatments.
+            Krishi Setu can make mistakes. Verify critical treatments.
           </span>
         </div>
       </div>

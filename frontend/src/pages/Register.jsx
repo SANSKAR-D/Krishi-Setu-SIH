@@ -31,7 +31,7 @@ const Register = () => {
           <div className="w-12 h-12 rounded-xl bg-surface flex items-center justify-center shrink-0">
             <Brain className="text-primary w-8 h-8" />
           </div>
-          <h1 className="headline-lg text-on-primary m-0">AgriExpert AI</h1>
+          <h1 className="headline-lg text-on-primary m-0">Krishi Setu</h1>
         </div>
 
         <div className="relative z-10 max-w-[448px]">
@@ -49,12 +49,12 @@ const Register = () => {
              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shrink-0">
               <Brain className="text-on-primary w-8 h-8" />
             </div>
-            <h1 className="headline-lg text-primary m-0">AgriExpert</h1>
+            <h1 className="headline-lg text-primary m-0">Krishi Setu</h1>
           </div>
 
           <div className="mb-8">
             <h2 className="headline-lg text-on-surface mb-2">Create Account</h2>
-            <p className="body-lg text-on-surface-variant">Sign up to get started with AgriExpert AI.</p>
+            <p className="body-lg text-on-surface-variant">Sign up to get started with Krishi Setu.</p>
           </div>
 
           {error && (
