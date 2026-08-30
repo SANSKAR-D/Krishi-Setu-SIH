@@ -81,7 +81,7 @@ const getDashboardData = async (req, res) => {
           responseMimeType: "application/json"
         }
       });
-      
+
       const content = aiResponse.text.trim();
       aiAdvisories = JSON.parse(content);
     } catch (aiErr) {
