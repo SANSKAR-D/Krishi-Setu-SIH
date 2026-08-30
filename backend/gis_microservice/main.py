@@ -426,44 +426,6 @@ async def fetch_elevation(client: httpx.AsyncClient, lat: float, lon: float) -> 
         print(f"[Elevation] Error: {e}")
         return {"elevation_m": None}
 
-
-async def fetch_markets(client: httpx.AsyncClient, lat: float, lon: float) -> dict:
-    """Overpass API: count nearby marketplaces within 25km radius."""
-
-    key = _cache_key(lat, lon)
-    cached = markets_cache.get(f"markets:{key}")
-    if cached is not None:
-        return cached
-
-    try:
-        query = f'[out:json];node["amenity"="marketplace"](around:25000,{lat},{lon});out count;'
-        r = await client.get(
-            "https://overpass-api.de/api/interpreter",
-            params={"data": query},
-            headers={"User-Agent": "KrishiSetu-Bot/1.0"},
-            timeout=15.0,
-        )
-        r.raise_for_status()
-        data = r.json()
-
-        count = 0
-        elements = data.get("elements", [])
-        if elements:
-            tags = elements[0].get("tags", {})
-            if tags:
-                count = int(tags.get("nodes", 0)) + int(tags.get("ways", 0)) + int(tags.get("relations", 0))
-            else:
-                count = len(elements)
-
-        result = {"count": count}
-        markets_cache.set(f"markets:{key}", result, MARKETS_TTL)
-        return result
-
-    except Exception as e:
-        print(f"[Markets] Error: {e}")
-        return {"count": 0}
-
-
 #  ROUTES
 
 @app.get("/")
@@ -486,10 +448,9 @@ async def get_environment(
     weather_task = fetch_weather(client, lat, lng)
     soil_task = fetch_soil(client, lat, lng)
     elevation_task = fetch_elevation(client, lat, lng)
-    markets_task = fetch_markets(client, lat, lng)
 
-    weather, soil, elevation, markets = await asyncio.gather(
-        weather_task, soil_task, elevation_task, markets_task
+    weather, soil, elevation = await asyncio.gather(
+        weather_task, soil_task, elevation_task
     )
 
     return {
@@ -497,8 +458,7 @@ async def get_environment(
         "data": {
             "weather": weather,
             "soil": soil,
-            "elevation": elevation,
-            "markets": markets,
+            "elevation": elevation
         },
     }
 
