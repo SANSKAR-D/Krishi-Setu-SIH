@@ -57,7 +57,6 @@ class TTLCache:
 weather_cache = TTLCache()
 soil_cache = TTLCache()
 elevation_cache = TTLCache()
-markets_cache = TTLCache()
 
 WEATHER_TTL = 3600       # 1 hour
 SOIL_TTL = 86400          # 24 hours (soil data rarely changes)
@@ -577,12 +576,46 @@ def get_states():
 
 @app.get("/api/agmarknet/daily_report/{state_id}")
 def get_daily_report(state_id: str):
-    today = date.today().isoformat()
-    try:
-        report = client.commodity_market_daily_report_state(date=today, state_id=state_id)
-        return {"date": today, "data": report}
-    except Exception as e:
-        return {"error": str(e)}
+    from datetime import timedelta
+    
+    # Agmarknet data is typically available for the previous day.
+    # Try today first, and fall back to previous days if no data is returned.
+    for days_back in range(0, 8):
+        target_date = (date.today() - timedelta(days=days_back)).isoformat()
+        try:
+            report = client.commodity_market_daily_report_state(date=target_date, state_id=state_id)
+        except Exception as e:
+            print(f"Error fetching data for {target_date}: {e}")
+            continue
+        
+        commodity_groups = report.get("commodityGroups", [])
+        if not commodity_groups:
+            continue  # no data for this date, try previous day
+        
+        # Flatten the nested structure into a list of rows for the frontend
+        flat_data = []
+        for group in commodity_groups:
+            for commodity in group.get("commodities", []):
+                commodity_name = commodity.get("commodityName", "")
+                for market in commodity.get("markets", []):
+                    market_name = market.get("marketCenter", "")
+                    for item in market.get("data", []):
+                        flat_data.append({
+                            "commodityName": commodity_name,
+                            "marketName": market_name,
+                            "variety": item.get("variety"),
+                            "minPrice": item.get("minimumPrice"),
+                            "maxPrice": item.get("maximumPrice"),
+                            "modalPrice": item.get("modalPrice"),
+                            "arrivals": item.get("arrivals"),
+                            "unitOfArrivals": item.get("unitOfArrivals"),
+                            "unitOfPrice": item.get("unitOfPrice"),
+                        })
+        
+        return {"date": target_date, "data": flat_data}
+    
+    return {"date": date.today().isoformat(), "data": [], "message": "No data available for the last 7 days"}
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
