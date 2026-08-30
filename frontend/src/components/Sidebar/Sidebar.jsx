@@ -1,4 +1,4 @@
-import { Brain, Home, Sprout, Calendar, Bot, HelpCircle, Settings } from 'lucide-react';
+import { Brain, Home, Sprout, Calendar, Bot, HelpCircle, Settings, Map } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -39,6 +39,10 @@ const Sidebar = () => {
         <NavLink to="/expert-chat" className={navClass}>
           <Bot className="w-5 h-5" />
           <span className="label-sm">Expert Chat</span>
+        </NavLink>
+        <NavLink to="/gis" className={navClass}>
+          <Map className="w-5 h-5" />
+          <span className="label-sm">GIS Map</span>
         </NavLink>
       </div>
       
