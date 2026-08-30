@@ -1,5 +1,12 @@
 const axios = require('axios');
 
+// ─── 30-minute cache for AI advisories ───
+const advisoryCache = {
+  data: null,
+  timestamp: 0,
+  TTL: 30 * 60 * 1000 // 30 minutes in ms
+};
+
 // Helper to simulate slight variations in soil metrics
 const generateSimulatedSoilData = () => {
   const baseMoisture = 40;
@@ -47,45 +54,59 @@ const getDashboardData = async (req, res) => {
     const soilMetrics = generateSimulatedSoilData();
     soilMetrics.weather_condition = weatherCondition;
 
-    // Fetch AI advisories
+    // Fetch AI advisories (with 30-min cache)
     let aiAdvisories = [];
-    try {
-      const { GoogleGenAI } = require('@google/genai');
-      const ai = new GoogleGenAI({
-        apiKey: process.env.GOOGLE_API_KEY,
-      });
+    const now = Date.now();
 
-      const prompt = `
-      You are an expert agricultural AI. Based on the following soil and weather data, 
-      provide 2 to 3 short, actionable advisories.
-      
-      Data:
-      Moisture: ${soilMetrics.moisture}%
-      pH: ${soilMetrics.ph}
-      Nitrogen: ${soilMetrics.nitrogen}
-      Phosphorus: ${soilMetrics.phosphorus}
-      Potassium: ${soilMetrics.potassium}
-      Temperature: ${soilMetrics.temperature}°C
-      Weather: ${soilMetrics.weather_condition}
-      
-      Reply ONLY with a JSON array of objects. Each object must have:
-      "title" (string, short e.g. "Apply Nitrogen"),
-      "description" (string, 1 short sentence),
-      "severity" (string, either "critical", "warning", or "info").
-      `;
+    if (advisoryCache.data && (now - advisoryCache.timestamp) < advisoryCache.TTL) {
+      // Cache is still fresh — use it
+      aiAdvisories = advisoryCache.data;
+      // console.log("📋 AI Advisories served from cache (expires in", Math.round((advisoryCache.TTL - (now - advisoryCache.timestamp)) / 60000), "min)");
+    } else {
+      // Cache expired or empty — call Gemini
+      try {
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({
+          apiKey: process.env.GOOGLE_API_KEY,
+        });
 
-      const aiResponse = await ai.models.generateContent({
-        model: 'gemini-3.5-flash-lite',
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json"
-        }
-      });
+        const prompt = `
+        You are an expert agricultural AI. Based on the following soil and weather data, 
+        provide 2 to 3 short, actionable advisories.
+        
+        Data:
+        Moisture: ${soilMetrics.moisture}%
+        pH: ${soilMetrics.ph}
+        Nitrogen: ${soilMetrics.nitrogen}
+        Phosphorus: ${soilMetrics.phosphorus}
+        Potassium: ${soilMetrics.potassium}
+        Temperature: ${soilMetrics.temperature}°C
+        Weather: ${soilMetrics.weather_condition}
+        
+        Reply ONLY with a JSON array of objects. Each object must have:
+        "title" (string, short e.g. "Apply Nitrogen"),
+        "description" (string, 1 short sentence),
+        "severity" (string, either "critical", "warning", or "info").
+        `;
 
-      const content = aiResponse.text.trim();
-      aiAdvisories = JSON.parse(content);
-    } catch (aiErr) {
-      console.error("Error generating AI advisories in node:", aiErr.message);
+        const aiResponse = await ai.models.generateContent({
+          model: 'gemini-3.5-flash-lite',
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json"
+          }
+        });
+
+        const content = aiResponse.text.trim();
+        aiAdvisories = JSON.parse(content);
+
+        // Update cache
+        advisoryCache.data = aiAdvisories;
+        advisoryCache.timestamp = now;
+        // console.log("AI Advisories freshly generated and cached for 30 min");
+      } catch (aiErr) {
+        console.error("Error generating AI advisories in node:", aiErr.message);
+      }
     }
 
     res.json({
@@ -104,3 +125,4 @@ const getDashboardData = async (req, res) => {
 };
 
 module.exports = { getDashboardData };
+
