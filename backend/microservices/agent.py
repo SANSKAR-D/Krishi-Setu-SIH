@@ -99,21 +99,27 @@ def web_search(query: str) -> str:
 tools = [predict_yield, predict_water_requirement, recommend_crop, web_search]
 tool_node = ToolNode(tools)
 
+import time
+
 # ==========================================
 # 3. Nodes
 # ==========================================
 
 def dl_node(state: AgentState):
+    start_t = time.time()
     print("--- DEEP LEARNING NODE ---")
     image_urls = state.get("image_urls")
     if not image_urls:
+        print(f"DL Node skipped in {time.time() - start_t:.2f}s")
         return {"dl_result": None}
     
     if len(image_urls) < 3:
+        print(f"DL Node error (not enough images) in {time.time() - start_t:.2f}s")
         return {"dl_result": {"error": "Need 3 to 5 images for disease prediction."}}
     
     dl_url = os.getenv("DL_URL")
     if not dl_url:
+        print(f"DL Node error (no URL) in {time.time() - start_t:.2f}s")
         return {"dl_result": {"error": "DL_URL environment variable is not set."}}
         
     url = f"{dl_url}/predict-disease-url"
@@ -122,18 +128,34 @@ def dl_node(state: AgentState):
     try:
         response = requests.post(url, json=payload, timeout=30)  # type: ignore
         response.raise_for_status()
+        print(f"DL Node completed in {time.time() - start_t:.2f}s")
         return {"dl_result": response.json()}
     except Exception as e:
+        print(f"DL Node exception in {time.time() - start_t:.2f}s: {e}")
         return {"dl_result": {"error": str(e)}}
 
-def rag_node(state: AgentState):
-    print("--- RAG NODE (Pinecone) ---")
+# Initialize Embeddings and VectorStore globally to avoid 2.5s reload on every request
+try:
     from langchain_pinecone import PineconeVectorStore
     from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
     
-    index_name = os.getenv("PINECONE_INDEX_NAME")
-    if not index_name:
-        return {"rag_context": "Pinecone index name not configured in environment."}
+    global_embeddings = FastEmbedEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    global_index_name = os.getenv("PINECONE_INDEX_NAME")
+    if global_index_name:
+        global_db = PineconeVectorStore(index_name=global_index_name, embedding=global_embeddings)
+    else:
+        global_db = None
+except Exception as e:
+    print(f"Error initializing Pinecone globally: {e}")
+    global_db = None
+
+def rag_node(state: AgentState):
+    start_t = time.time()
+    print("--- RAG NODE (Pinecone) ---")
+    
+    if not global_db:
+        print(f"RAG Node skipped (no db) in {time.time() - start_t:.2f}s")
+        return {"rag_context": "Pinecone index name not configured in environment or failed to initialize."}
         
     query = state.get("user_query", "")
     dl_result = state.get("dl_result")
@@ -143,19 +165,20 @@ def rag_node(state: AgentState):
         query = f"Information about crop disease: {json.dumps(dl_result)}"
         
     try:
-        embeddings = FastEmbedEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        db = PineconeVectorStore(index_name=index_name, embedding=embeddings)
-        
-        results = db.similarity_search(query, k=4)
+        results = global_db.similarity_search(query, k=4)
         if not results:
+            print(f"RAG Node completed (no results) in {time.time() - start_t:.2f}s")
             return {"rag_context": "No relevant context found in knowledge base."}
             
         context_chunks = [doc.page_content for doc in results]
+        print(f"RAG Node completed in {time.time() - start_t:.2f}s")
         return {"rag_context": "\n\n".join(context_chunks)}
     except Exception as e:
+        print(f"RAG Node exception in {time.time() - start_t:.2f}s: {e}")
         return {"rag_context": f"Error accessing knowledge base: {str(e)}"}
 
 def agent_node(state: AgentState):
+    start_t = time.time()
     print("--- AGENT NODE ---")
     llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0.3)
     llm_with_tools = llm.bind_tools(tools)
@@ -176,6 +199,7 @@ def agent_node(state: AgentState):
     messages = [SystemMessage(content=sys_msg)] + recent_messages
     
     response = llm_with_tools.invoke(messages)
+    print(f"Agent Node (LLM Call) completed in {time.time() - start_t:.2f}s")
     return {"messages": [response]}
 
 # ==========================================
@@ -186,7 +210,9 @@ def should_continue(state: AgentState):
     last_message = messages[-1]
     
     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        print(f"--- ROUTING TO TOOLS NODE ---")
         return "tools_node"
+    print(f"--- ROUTING TO END ---")
     return END
 
 # ==========================================
