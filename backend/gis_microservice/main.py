@@ -74,6 +74,7 @@ def _cache_key(lat: float, lon: float) -> str:
 async def lifespan(app: FastAPI):
     """Create a shared httpx client on startup, close on shutdown."""
     app.state.http_client = httpx.AsyncClient(
+        headers={"User-Agent": "Krishi-Setu-GIS-Backend/1.0"},
         timeout=httpx.Timeout(15.0, connect=5.0),
         limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         follow_redirects=True,
