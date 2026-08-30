@@ -11,7 +11,10 @@ import asyncio
 import uvicorn
 import time
 from dotenv import load_dotenv
+from dotenv import load_dotenv
 from sqlalchemy import text
+from agmarknet_api import AgmarknetClient
+from datetime import date
 
 load_dotenv()
 
@@ -74,6 +77,7 @@ def _cache_key(lat: float, lon: float) -> str:
 async def lifespan(app: FastAPI):
     """Create a shared httpx client on startup, close on shutdown."""
     app.state.http_client = httpx.AsyncClient(
+        headers={"User-Agent": "Krishi-Setu-GIS-Backend/1.0"},
         timeout=httpx.Timeout(15.0, connect=5.0),
         limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         follow_redirects=True,
@@ -534,7 +538,52 @@ def delete_farm(farm_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success", "message": f"Farm {farm_id} deleted."}
 
+# ─── AGMARKNET INTEGRATION ───
+
+client = AgmarknetClient()
+
+@app.get("/api/agmarknet/states")
+def get_states():
+    try:
+        all_states = []
+        page = 1
+        while True:
+            response = client.list_states(page=page, search="")
+            states = response.get("states", [])
+            if not states:
+                break
+            all_states.extend(states)
+            
+            pagination = response.get("pagination", {})
+            if page >= pagination.get("total_pages", 1):
+                break
+            page += 1
+            
+        VALID_STATES = [
+            'Andhra Pradesh', 'Assam', 'Bihar', 'Chattisgarh', 'Gujarat', 'Haryana', 
+            'Himachal Pradesh', 'Jammu and Kashmir', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
+            'Maharashtra', 'NCT of Delhi', 'Odisha', 'Punjab', 'Rajasthan', 'Tamil Nadu', 
+            'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttrakhand', 'West Bengal'
+        ]
+        
+        filtered_states = [
+            s for s in all_states 
+            if (s.get('state_name') or s.get('stateName') or s.get('name')) in VALID_STATES
+        ]
+            
+        return {"states": filtered_states}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/agmarknet/daily_report/{state_id}")
+def get_daily_report(state_id: str):
+    today = date.today().isoformat()
+    try:
+        report = client.commodity_market_daily_report_state(date=today, state_id=state_id)
+        return {"date": today, "data": report}
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
     # Reload triggered

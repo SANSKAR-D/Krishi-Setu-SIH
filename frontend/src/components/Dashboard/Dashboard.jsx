@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Leaf, AlertTriangle, ClipboardList, Droplet, Maximize, Brain, Sun, CloudSun, CloudRain, Cloud, Loader2 } from 'lucide-react';
+import { AlertTriangle, Brain, Sun, CloudSun, CloudRain, Cloud, Loader2, Sparkles, Thermometer } from 'lucide-react';
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -22,181 +22,186 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <main className="flex-1 overflow-y-auto p-margin-mobile md:p-gutter flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 flex items-center justify-center bg-surface-container-lowest">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-on-surface-variant font-medium animate-pulse">Loading Farm Insights...</p>
+        </div>
       </main>
     );
   }
 
   // Fallbacks if data fails
-  const soil = data?.soil_metrics || { moisture: 0, ph: 0, nitrogen: "Unknown" };
   const advisories = data?.ai_advisories || [];
   const weather = data?.weather_forecast || [];
 
   return (
-    <main className="flex-1 overflow-y-auto p-margin-mobile md:p-gutter">
-      <div className="max-w-[1280px] mx-auto flex flex-col gap-gutter">
+    <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-surface-container-lowest min-h-full">
+      <div className="max-w-[1280px] mx-auto flex flex-col gap-8">
         
-        {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-sm">
-          <div>
-            <p className="label-sm text-on-surface-variant mb-xs">Today</p>
-            <h2 className="headline-lg-mobile md:headline-lg headline-lg-mobile md:headline-lg text-on-surface">Welcome back, Farmer</h2>
-          </div>
-          <div className="bg-surface px-md py-sm rounded-lg border border-outline-variant">
-            <p className="body-md text-on-surface-variant">
-              System is monitoring <span className="font-bold text-primary">live</span> telemetry data.
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-gradient-to-r from-primary to-secondary p-8 md:p-10 rounded-[2rem] shadow-lg shadow-primary/20 text-white relative overflow-hidden">
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-20 -mb-10 w-40 h-40 bg-black/10 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-white/90" />
+              <p className="text-sm font-bold uppercase tracking-widest text-white/90">Live Telemetry Active</p>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-3">Welcome back, Farmer</h2>
+            <p className="text-lg md:text-xl text-white/90 max-w-2xl leading-relaxed font-medium">
+              Your farm is looking great today. We've gathered the latest insights and AI advisories to help you optimize your crop yield.
             </p>
           </div>
-        </div>
-        
-        {/* Top Row: Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
-          {/* Card 1 */}
-          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-md">
-              <h3 className="title-md text-on-surface">Field Health Score</h3>
-              <Leaf className="text-primary w-6 h-6" />
-            </div>
-            <div className="flex items-center gap-md">
-              <div className="w-16 h-16 rounded-full border-4 border-primary border-r-surface-variant flex items-center justify-center transform rotate-45">
-                <span className="title-md text-primary transform -rotate-45">{(soil.moisture + soil.ph * 10).toFixed(0)}%</span>
-              </div>
-              <div>
-                <p className="label-sm text-on-surface-variant">Overall farm vitality</p>
-                <p className="font-body-sm text-primary mt-xs">Calculated from AI metrics</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Card 2 */}
-          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-md">
-              <h3 className="title-md text-on-surface">Active Alerts</h3>
-              <AlertTriangle className="text-tertiary w-6 h-6" />
-            </div>
-            <div className="flex flex-col gap-sm">
-              <div className="flex justify-between items-center bg-surface-container-low px-sm py-xs rounded-lg">
-                <span className="label-sm text-on-surface-variant">Critical</span>
-                <span className="bg-error-container text-on-error-container px-2 py-0.5 rounded text-xs font-bold">
-                  {advisories.filter(a => a.severity === 'critical').length}
-                </span>
-              </div>
-              <div className="flex justify-between items-center bg-surface-container-low px-sm py-xs rounded-lg">
-                <span className="label-sm text-on-surface-variant">Warnings</span>
-                <span className="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-xs font-bold">
-                  {advisories.filter(a => a.severity === 'warning').length}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Card 3 */}
-          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-md">
-              <h3 className="title-md text-on-surface">Next Scheduled Task</h3>
-              <ClipboardList className="text-outline w-6 h-6" />
-            </div>
-            <div className="flex items-start gap-sm">
-              <div className="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
-                <Droplet className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="title-md text-on-surface">Fertilizer Application</p>
-                <p className="label-sm text-on-surface-variant mt-xs">Based on {soil.nitrogen} Nitrogen</p>
-              </div>
-            </div>
+          <div className="relative z-10 hidden md:flex items-center gap-4 bg-white/20 px-6 py-4 rounded-2xl shadow-sm border border-white/30 backdrop-blur-md">
+            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-[0_0_12px_rgba(74,222,128,0.8)]"></div>
+            <p className="text-lg text-white font-bold tracking-wide">System Online</p>
           </div>
         </div>
         
-        {/* Middle Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-md">
-          {/* Left 2/3: Field Map Overview */}
-          <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
-            <div className="p-md border-b border-outline-variant flex justify-between items-center">
-              <h3 className="title-md text-on-surface">Field Map Overview</h3>
-              <button className="text-primary hover:text-secondary-fixed-dim transition-colors border-none bg-transparent cursor-pointer">
-                <Maximize className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="relative w-full h-80 bg-surface-container flex-1">
-              <div className="w-full h-full bg-cover bg-center absolute inset-0" style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBHdcf-_uXeC9AELmwKe1REFA6NHHR-pnu6w3Ak4U2HLNQkAuBtzT7BcMWizHpo-vBCzoMH-0yiyRz-BedDnTBLAxClwGzQ0r94Gp8klmu4m9B8I-gxAVNE1IDQi2Z9zvM1eYYIgo0R1tP6QWFI4xIw_s5B04LqBH7wB2v0HDkhmLPYnelgRHHUgwvlzPvm0lhsBRTMniv8gOZDLCvonYwEAHtNiy7iCSvWELYODZ12NOdIlXeWeKza8g')"}}></div>
-              {/* Status Markers */}
-              <div className="absolute top-1/4 left-1/4 flex flex-col items-center">
-                <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-sm mb-1 animate-pulse"></div>
-                <span className="bg-surface px-2 py-1 rounded text-xs font-bold text-on-surface shadow">North Field</span>
-              </div>
-            </div>
-          </div>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
           
-          {/* Right 1/3: Quick Advisory */}
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm flex flex-col">
-            <div className="p-md border-b border-outline-variant flex gap-sm items-center">
-              <Brain className="text-primary w-6 h-6" />
-              <h3 className="title-md text-on-surface">Quick Advisory</h3>
-            </div>
-            <div className="p-md flex-1 flex flex-col gap-md overflow-y-auto max-h-80">
-              {advisories.length > 0 ? advisories.map((adv, idx) => (
-                <div key={idx} className="bg-surface-container-low rounded-lg p-sm border border-outline-variant">
-                  <div className="flex justify-between items-start mb-sm">
-                    <span className={`px-2 py-1 rounded-sm text-xs font-bold uppercase tracking-wider ${adv.severity === 'critical' ? 'bg-error-container text-on-error-container' : 'bg-tertiary-container text-on-tertiary-container'}`}>
-                      {adv.severity}
-                    </span>
-                    <span className="label-sm text-on-surface-variant">Live</span>
+          {/* Left Column (2/3 width) */}
+          <div className="lg:col-span-2 flex flex-col gap-8">
+            
+            {/* Weather Forecast (Horizontal strip) */}
+            <div className="bg-white rounded-[2rem] border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md">
+              <div className="px-8 py-6 border-b border-outline-variant/10 flex items-center justify-between bg-surface/30">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-500/10 rounded-2xl">
+                    <Sun className="text-blue-600 w-7 h-7" />
                   </div>
-                  <p className="title-md body-md font-bold text-on-surface mb-xs">{adv.title}</p>
-                  <p className="body-md text-on-surface-variant mb-sm">{adv.description}</p>
+                  <div>
+                    <h3 className="text-xl font-bold text-on-surface">Weather Forecast</h3>
+                    <p className="text-sm text-on-surface-variant font-medium mt-1">7-Day outlook for your location</p>
+                  </div>
                 </div>
-              )) : (
-                <p className="text-on-surface-variant">No advisories at this time.</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Bottom Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-md pb-lg">
-          {/* Soil Health Preview */}
-          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm">
-            <h3 className="title-md text-on-surface mb-md">Soil Health Preview</h3>
-            <div className="flex justify-around items-end h-32 mb-sm border-b border-outline-variant pb-2">
-              <div className="flex flex-col items-center gap-xs w-full">
-                <div className={`w-8 rounded-t-sm ${soil.nitrogen === 'Optimal' ? 'bg-primary' : 'bg-tertiary'}`} style={{height: soil.nitrogen === 'Optimal' ? '80%' : '40%'}}></div>
-                <span className="label-sm text-on-surface-variant">N</span>
               </div>
-              <div className="flex flex-col items-center gap-xs w-full">
-                <div className={`w-8 rounded-t-sm ${soil.phosphorus === 'Optimal' ? 'bg-primary' : 'bg-tertiary'}`} style={{height: soil.phosphorus === 'Optimal' ? '80%' : '40%'}}></div>
-                <span className="label-sm text-on-surface-variant">P</span>
-              </div>
-              <div className="flex flex-col items-center gap-xs w-full">
-                <div className={`w-8 rounded-t-sm ${soil.potassium === 'Optimal' ? 'bg-primary' : 'bg-tertiary'}`} style={{height: soil.potassium === 'Optimal' ? '80%' : '40%'}}></div>
-                <span className="label-sm text-on-surface-variant">K</span>
-              </div>
-            </div>
-            <p className="body-md text-on-surface-variant text-center">Nitrogen is {soil.nitrogen.toLowerCase()}, Phosphorus is {soil.phosphorus.toLowerCase()}.</p>
-          </div>
-          
-          {/* Weather Forecast */}
-          <div className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm">
-            <h3 className="title-md text-on-surface mb-md">Weekly Weather Forecast</h3>
-            {weather.length > 0 ? (
-              <div className="grid grid-cols-5 gap-sm text-center">
-                {weather.slice(0, 5).map((w, idx) => (
-                  <div key={idx} className="flex flex-col items-center gap-xs p-xs rounded hover:bg-surface-container transition-colors cursor-pointer">
-                    <span className="label-sm text-on-surface-variant">
-                      {new Date(w.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                    </span>
-                    {w.condition.toLowerCase().includes('cloud') ? <Cloud className="text-outline w-6 h-6" /> :
-                     w.condition.toLowerCase().includes('rain') ? <CloudRain className="text-outline w-6 h-6" /> :
-                     <Sun className="text-outline w-6 h-6" />}
-                    <span className="body-md text-on-surface">{w.temp}&deg;</span>
+              <div className="p-8">
+                {weather.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
+                    {weather.slice(0, 5).map((w, idx) => (
+                      <div key={idx} className="flex flex-col items-center justify-center p-5 rounded-2xl bg-surface hover:bg-blue-50/50 border border-outline-variant/20 transition-all hover:-translate-y-1 hover:shadow-sm group cursor-pointer">
+                        <span className="text-sm font-bold text-on-surface-variant group-hover:text-blue-700 transition-colors mb-4 uppercase tracking-wider">
+                          {new Date(w.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                        <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white shadow-sm mb-4 group-hover:scale-110 transition-transform duration-300">
+                          {w.condition.toLowerCase().includes('cloud') ? <Cloud className="text-slate-400 w-7 h-7" /> :
+                           w.condition.toLowerCase().includes('rain') ? <CloudRain className="text-blue-400 w-7 h-7" /> :
+                           <Sun className="text-orange-400 w-7 h-7" />}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Thermometer className="w-4 h-4 text-on-surface-variant/50" />
+                          <span className="text-xl font-black text-on-surface">{w.temp}&deg;</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center bg-surface/50 rounded-2xl border border-dashed border-outline-variant/50">
+                    <CloudSun className="w-12 h-12 text-on-surface-variant/30 mb-4" />
+                    <p className="text-on-surface-variant font-medium">Weather Data Unavailable</p>
+                    <p className="text-sm text-on-surface-variant/70 mt-1 max-w-[200px]">Configure your OpenWeather API key to view the forecast.</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="text-on-surface-variant text-center my-4">Add OpenWeather API key to view forecast.</p>
-            )}
+            </div>
+
+            {/* Smart Advisories */}
+            <div className="bg-white rounded-[2rem] border border-outline-variant/30 shadow-sm flex flex-col transition-all hover:shadow-md">
+              <div className="px-8 py-6 border-b border-outline-variant/10 flex items-center justify-between bg-surface/30">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-2xl">
+                    <Brain className="text-primary w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-on-surface">Smart Advisories</h3>
+                    <p className="text-sm text-on-surface-variant font-medium mt-1">AI-powered recommendations for your fields</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 flex flex-col gap-5">
+                {advisories.length > 0 ? advisories.map((adv, idx) => (
+                  <div key={idx} className="group relative bg-surface hover:bg-primary/5 rounded-2xl p-6 border border-outline-variant/20 transition-all duration-300 hover:border-primary/30 hover:shadow-sm flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+                    <div className="shrink-0">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm ${adv.severity === 'critical' ? 'bg-error text-white' : 'bg-orange-100 text-orange-700'}`}>
+                        {adv.severity === 'critical' ? <AlertTriangle className="w-6 h-6" /> : <Brain className="w-6 h-6" />}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${adv.severity === 'critical' ? 'text-error bg-error/10' : 'text-orange-700 bg-orange-100'}`}>
+                          {adv.severity}
+                        </span>
+                        <span className="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div> Live Insight
+                        </span>
+                      </div>
+                      <h4 className="text-xl font-bold text-on-surface mb-2 group-hover:text-primary transition-colors">{adv.title}</h4>
+                      <p className="text-on-surface-variant text-base leading-relaxed">{adv.description}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-5">
+                      <Sparkles className="w-10 h-10 text-on-surface-variant/50" />
+                    </div>
+                    <p className="text-xl font-bold text-on-surface-variant mb-2">All Clear!</p>
+                    <p className="text-base text-on-surface-variant/80">No pending advisories at this time.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
+
+          {/* Right Column (1/3 width) */}
+          <div className="lg:col-span-1 flex flex-col gap-8">
+            
+            {/* Active Alerts */}
+            <div className="bg-white rounded-[2rem] border border-outline-variant/30 shadow-sm flex flex-col transition-all hover:shadow-md h-full">
+              <div className="rounded-t-[2rem] px-8 py-6 border-b border-outline-variant/10 flex items-center justify-between bg-error/5">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-error/10 rounded-2xl">
+                    <AlertTriangle className="text-error w-7 h-7" />
+                  </div>
+                  <h3 className="text-xl font-bold text-on-surface">Active Alerts</h3>
+                </div>
+              </div>
+              <div className="p-8 flex flex-col gap-6 flex-1">
+                <div className="bg-surface rounded-2xl p-6 border border-outline-variant/20 flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-error shadow-[0_0_8px_rgba(220,38,38,0.5)]"></div>
+                      <span className="text-lg font-bold text-on-surface">Critical Issues</span>
+                    </div>
+                    <span className="bg-error text-white px-4 py-1.5 rounded-xl text-base font-black shadow-sm">
+                      {advisories.filter(a => a.severity === 'critical').length}
+                    </span>
+                  </div>
+                  <p className="text-sm text-on-surface-variant/80 font-medium">Requires immediate attention</p>
+                </div>
+                
+                <div className="bg-surface rounded-2xl p-6 border border-outline-variant/20 flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]"></div>
+                      <span className="text-lg font-bold text-on-surface">Warnings</span>
+                    </div>
+                    <span className="bg-orange-100 text-orange-700 px-4 py-1.5 rounded-xl text-base font-black shadow-sm">
+                      {advisories.filter(a => a.severity === 'warning').length}
+                    </span>
+                  </div>
+                  <p className="text-sm text-on-surface-variant/80 font-medium">Monitor closely</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
         
       </div>
