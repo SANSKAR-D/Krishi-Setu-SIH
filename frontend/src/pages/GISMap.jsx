@@ -331,7 +331,7 @@ const MapDashboard = () => {
       const hasAnyData = weatherRes.status === 'fulfilled' || elevationRes.status === 'fulfilled' || soilRes.status === 'fulfilled';
 
       if (hasAnyData) {
-        setEnvData({ weather: weatherData, elevation: elevationData, soil: soilData});
+        setEnvData({ weather: weatherData, elevation: elevationData, soil: soilData });
         setEnvSource('direct');
         setEnvError(null);
       } else {
@@ -539,7 +539,6 @@ const MapDashboard = () => {
   const weather = envData?.weather;
   const soil = envData?.soil;
   const elevation = envData?.elevation;
-  // const crops = envData?.crop_recommendations; (replaced by ML)
 
   // ─────────── Render ───────────
   return (
