@@ -35,7 +35,7 @@ def read_root():
     return {"message" : "Agentic Router is running!"}
 
 @app.post("/ask", response_model=AgentResponse)
-async def ask_agent(request: AgentRequest):
+def ask_agent(request: AgentRequest):
     try:
         from langchain_core.messages import HumanMessage
         
