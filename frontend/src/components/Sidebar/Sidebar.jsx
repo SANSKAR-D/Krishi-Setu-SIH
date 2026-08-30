@@ -1,4 +1,4 @@
-import { Brain, Home, Sprout, Calendar, Bot, HelpCircle, Settings, Map } from 'lucide-react';
+import { Brain, Home, Sprout, Calendar, Bot, HelpCircle, Settings, Map, TrendingUp } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -39,6 +39,10 @@ const Sidebar = () => {
         <NavLink to="/gis" className={navClass}>
           <Map className="w-5 h-5" />
           <span className="label-sm">GIS Map</span>
+        </NavLink>
+        <NavLink to="/market-data" className={navClass}>
+          <TrendingUp className="w-5 h-5" />
+          <span className="label-sm">Market Data</span>
         </NavLink>
       </div>
     </nav>
