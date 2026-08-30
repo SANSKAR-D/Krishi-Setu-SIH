@@ -5,7 +5,6 @@ dotenv.config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-
 const eventRoutes = require("./routes/eventRoutes");
 const chatRoutes = require("./routes/chatRoutes"); 
 const dashboardRoutes = require("./routes/dashboardRoutes");

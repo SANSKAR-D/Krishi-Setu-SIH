@@ -9,7 +9,7 @@ const chatHistorySchema = new mongoose.Schema({
   messages: [{
     role: { type: String, enum: ['user', 'ai'], required: true },
     text: { type: String },
-    image: { type: String }, // image url
+    image: { type: mongoose.Schema.Types.Mixed }, // image url or array of urls
     hasAudio: { type: Boolean, default: false },
     timestamp: { type: Date, default: Date.now }
   }]

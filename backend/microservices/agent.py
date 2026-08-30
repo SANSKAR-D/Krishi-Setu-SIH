@@ -23,6 +23,7 @@ class AgentState(TypedDict):
     image_urls: Optional[List[str]]
     dl_result: Optional[Dict[str, Any]]
     rag_context: Optional[str]
+    user_id: Optional[str]
 
 # ==========================================
 # 2. Tools Definition
@@ -170,7 +171,9 @@ def agent_node(state: AgentState):
     if context:
         sys_msg += "\n\nBackground Context provided by the system:\n" + "\n".join(context)
         
-    messages = [SystemMessage(content=sys_msg)] + state["messages"]
+    # Trim chat history to the last 20 messages to save context limits
+    recent_messages = state["messages"][-20:]
+    messages = [SystemMessage(content=sys_msg)] + recent_messages
     
     response = llm_with_tools.invoke(messages)
     return {"messages": [response]}
@@ -205,5 +208,25 @@ workflow.add_conditional_edges("agent_node", should_continue, ["tools_node", END
 workflow.add_edge("tools_node", "agent_node")
 
 # Compile with memory for chat history
-memory = MemorySaver()
+db_url = os.getenv("DATABASE_URL")
+pool = None
+if db_url:
+    from langgraph.checkpoint.postgres import PostgresSaver
+    from psycopg_pool import ConnectionPool
+    # Establish a connection pool to Neon with autocommit to allow concurrent index creation
+    pool = ConnectionPool(
+        conninfo=db_url, 
+        max_size=20, 
+        min_size=0,         # Allow the pool to shrink to 0 when idle
+        timeout=30,         # Timeout if connection fails
+        max_idle=30,        # Reduced to 30s to prevent Neon from dropping idle connections
+        kwargs={"autocommit": True}
+    )
+    memory = PostgresSaver(pool)
+    memory.setup()  # Automatically create tables if they don't exist
+else:
+    # Fallback if no database URL is provided yet
+    from langgraph.checkpoint.memory import MemorySaver
+    memory = MemorySaver()
+
 agent_app = workflow.compile(checkpointer=memory)

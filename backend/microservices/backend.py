@@ -1,9 +1,17 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from agent import agent_app
+from contextlib import asynccontextmanager
+from agent import agent_app, pool
 
-app = FastAPI(title="Krishi Setu Agentic Router", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    # Cleanup resources on shutdown
+    if pool is not None:
+        pool.close()
+
+app = FastAPI(title="Krishi Setu Agentic Router", version="1.0.0", lifespan=lifespan)
 
 class AgentRequest(BaseModel):
     user_query: str
@@ -23,7 +31,8 @@ async def ask_agent(request: AgentRequest):
         initial_state = {
             "messages": [HumanMessage(content=request.user_query)],
             "user_query": request.user_query,
-            "image_urls": request.image_urls
+            "image_urls": request.image_urls,
+            "user_id": request.thread_id
         }
         
         # Remove None values to keep state clean (optional, but good practice)

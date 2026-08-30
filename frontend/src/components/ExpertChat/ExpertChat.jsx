@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Bot,
   // AlertTriangle,
@@ -36,8 +38,8 @@ const ExpertChat = () => {
     fetchHistory();
   }, []);
   
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
   
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -56,16 +58,17 @@ const ExpertChat = () => {
   }, [messages, isLoading]);
 
   const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setSelectedImages((prev) => [...prev, ...files]);
+      const newUrls = files.map((file) => URL.createObjectURL(file));
+      setPreviewUrls((prev) => [...prev, ...newUrls]);
     }
   };
 
-  const removeImage = () => {
-    setSelectedImage(null);
-    setPreviewUrl(null);
+  const removeImage = (index) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const startRecording = async () => {
@@ -106,27 +109,29 @@ const ExpertChat = () => {
   };
 
   const handleSend = async () => {
-    if (!message.trim() && !selectedImage && !audioBlob) return;
+    if (!message.trim() && selectedImages.length === 0 && !audioBlob) return;
 
     // Build Form Data
     const formData = new FormData();
     if (message.trim()) formData.append("message", message);
-    if (selectedImage) formData.append("image", selectedImage);
+    if (selectedImages.length > 0) {
+      selectedImages.forEach((img) => formData.append("image", img));
+    }
     if (audioBlob) formData.append("audio", audioBlob, "voice_record.webm");
 
     // Add user message to UI
     const newUserMsg = {
       role: "user",
       text: message,
-      image: previewUrl,
+      image: previewUrls.length > 0 ? [...previewUrls] : null,
       hasAudio: !!audioBlob,
     };
     setMessages((prev) => [...prev, newUserMsg]);
 
     // Reset inputs
     setMessage("");
-    setSelectedImage(null);
-    setPreviewUrl(null);
+    setSelectedImages([]);
+    setPreviewUrls([]);
     setAudioBlob(null);
     setIsLoading(true);
 
@@ -147,7 +152,7 @@ const ExpertChat = () => {
 
   return (
     <main className="flex-1 flex flex-col relative bg-surface-bright overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop scroll-smooth pb-32">
+      <div className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop scroll-smooth">
         <div className="max-w-[800px] mx-auto flex flex-col gap-md">
           {/* Date separator */}
           <div className="flex justify-center items-center my-4 relative">
@@ -177,9 +182,15 @@ const ExpertChat = () => {
                     ? 'bg-primary text-on-primary rounded-tr-sm' 
                     : 'bg-surface border border-outline-variant rounded-tl-sm text-on-surface'
                 }`}>
-                  {msg.image && (
+                  {msg.image && (Array.isArray(msg.image) ? (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {msg.image.map((img, i) => (
+                        <img key={i} src={img} alt={`User Upload ${i}`} className="max-w-full h-auto rounded-lg max-h-48 object-cover" />
+                      ))}
+                    </div>
+                  ) : (
                     <img src={msg.image} alt="User Upload" className="max-w-full h-auto rounded-lg mb-2 max-h-48 object-cover" />
-                  )}
+                  ))}
                   {msg.hasAudio && (
                     <div className="flex items-center gap-2 mb-2 bg-primary-container text-on-primary-container p-2 rounded-lg">
                       <Mic className="w-4 h-4" />
@@ -187,7 +198,9 @@ const ExpertChat = () => {
                     </div>
                   )}
                   {msg.text && (
-                    <p className="body-md whitespace-pre-wrap">{msg.text}</p>
+                    <div className="body-md whitespace-pre-wrap prose prose-sm max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+                    </div>
                   )}
                 </div>
               </div>
@@ -210,20 +223,20 @@ const ExpertChat = () => {
       </div>
 
       {/* Input bar */}
-      <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-surface-bright via-surface-bright to-transparent">
+      <div className="w-full p-4 bg-surface-bright shrink-0 z-10">
         <div className="max-w-[800px] mx-auto relative bg-surface rounded-2xl border border-outline-variant shadow-lg flex flex-col p-2 focus-within:border-primary transition-all">
           
           {/* Previews */}
-          {(previewUrl || audioBlob) && (
-             <div className="flex items-center gap-4 mb-2 p-2 bg-surface-container-low rounded-xl">
-               {previewUrl && (
-                 <div className="relative">
-                   <img src={previewUrl} alt="Preview" className="w-16 h-16 object-cover rounded-lg border border-outline-variant" />
-                   <button onClick={removeImage} className="absolute -top-2 -right-2 bg-error text-on-error rounded-full p-1 shadow-sm hover:opacity-90">
+          {(previewUrls.length > 0 || audioBlob) && (
+             <div className="flex items-center gap-4 mb-2 p-2 bg-surface-container-low rounded-xl overflow-x-auto">
+               {previewUrls.map((url, index) => (
+                 <div key={index} className="relative flex-shrink-0">
+                   <img src={url} alt={`Preview ${index}`} className="w-16 h-16 object-cover rounded-lg border border-outline-variant" />
+                   <button onClick={() => removeImage(index)} className="absolute -top-2 -right-2 bg-error text-on-error rounded-full p-1 shadow-sm hover:opacity-90">
                      <X className="w-3 h-3" />
                    </button>
                  </div>
-               )}
+               ))}
                {audioBlob && (
                  <div className="relative flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg">
                     <Mic className="w-5 h-5" />
@@ -239,7 +252,7 @@ const ExpertChat = () => {
           <div className="flex items-center w-full">
             <label className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low cursor-pointer">
               <Camera className="w-5 h-5" />
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+              <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
             </label>
             
             <input
@@ -273,7 +286,7 @@ const ExpertChat = () => {
             <button
               className="p-2 bg-primary text-on-primary rounded-xl hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center disabled:opacity-50"
               onClick={handleSend}
-              disabled={isLoading || (!message.trim() && !selectedImage && !audioBlob)}
+              disabled={isLoading || (!message.trim() && selectedImages.length === 0 && !audioBlob)}
             >
               <Send className="w-5 h-5" />
             </button>
