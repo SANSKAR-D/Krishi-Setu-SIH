@@ -23,6 +23,7 @@ class AgentState(TypedDict):
     image_urls: Optional[List[str]]
     dl_result: Optional[Dict[str, Any]]
     rag_context: Optional[str]
+    user_id: Optional[str]
 
 # ==========================================
 # 2. Tools Definition
@@ -218,7 +219,7 @@ if db_url:
         max_size=20, 
         min_size=0,         # Allow the pool to shrink to 0 when idle
         timeout=30,         # Timeout if connection fails
-        max_idle=300,       # Don't keep idle connections around for more than 5 minutes
+        max_idle=30,        # Reduced to 30s to prevent Neon from dropping idle connections
         kwargs={"autocommit": True}
     )
     memory = PostgresSaver(pool)

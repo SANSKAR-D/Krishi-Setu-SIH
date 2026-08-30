@@ -31,7 +31,8 @@ async def ask_agent(request: AgentRequest):
         initial_state = {
             "messages": [HumanMessage(content=request.user_query)],
             "user_query": request.user_query,
-            "image_urls": request.image_urls
+            "image_urls": request.image_urls,
+            "user_id": request.thread_id
         }
         
         # Remove None values to keep state clean (optional, but good practice)

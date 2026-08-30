@@ -1,3 +1,4 @@
+require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 const { GoogleGenAI } = require('@google/genai');
@@ -49,15 +50,15 @@ const handleChatRequest = async (req, res) => {
   try {
     const userId = req.user.id;
     const textMessage = req.body.message;
-    const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
+    const imageFiles = req.files && req.files['image'] ? req.files['image'] : [];
     const audioFile = req.files && req.files['audio'] ? req.files['audio'][0] : null;
     
-    let imageUrl = null;
+    let imageUrls = null;
     let finalEnglishQuery = '';
     let originalLanguage = 'English'; 
 
-    if (imageFile) {
-      imageUrl = await uploadToCloudinary(imageFile.buffer);
+    if (imageFiles.length > 0) {
+      imageUrls = await Promise.all(imageFiles.map(file => uploadToCloudinary(file.buffer)));
     }
 
     if (audioFile) {
@@ -91,10 +92,10 @@ const handleChatRequest = async (req, res) => {
       return res.status(400).json({ error: "No text or audio message provided." });
     }
 
-    // 3. Send query, imageUrl, and userId to FastAPI agent
+    // 3. Send query, imageUrls, and userId to FastAPI agent
     const fastApiPayload = {
       user_query: finalEnglishQuery,
-      image_urls: imageUrl ? [imageUrl] : null,
+      image_urls: imageUrls,
       thread_id: userId // Use MongoDB ObjectId as thread_id
     };
 
@@ -122,7 +123,7 @@ const handleChatRequest = async (req, res) => {
     history.messages.push({
       role: 'user',
       text: textMessage || "Audio Message",
-      image: imageUrl,
+      image: imageUrls,
       hasAudio: !!audioFile
     });
     
