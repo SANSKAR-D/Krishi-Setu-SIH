@@ -17,7 +17,7 @@ const eventSchema = new mongoose.Schema(
     eventType: {
       type: String,
       required: true,
-      enum: ["Sowing","Irrigation","Harvest","Alert"],
+      enum: ["Sowing", "Irrigation", "Harvest", "Fertilizer", "Pesticide", "Disease", "Others"],
     },
 
     // event kis din hoga/hua
@@ -54,8 +54,22 @@ const eventSchema = new mongoose.Schema(
       required: true,
     },
 
-    // agar event dawai/pesticide/fungicide se related hai to uska naam (optional)
-    medicineName: {
+    // agar event fertilizer se related hai
+    fertilizerName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    // agar event pesticide se related hai
+    pesticideName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    // agar event disease se related hai
+    diseaseName: {
       type: String,
       trim: true,
       default: "",
@@ -63,6 +77,13 @@ const eventSchema = new mongoose.Schema(
 
     // dawai ki kitni matra/dosage daalni hai (optional), jaise "50ml", "2kg/acre"
     dosage: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    // extra cost, tractor rent, etc (optional)
+    cost: {
       type: String,
       trim: true,
       default: "",

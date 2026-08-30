@@ -14,8 +14,11 @@ const addEvent = async (req, res) => {
       field,
       status,
       farmerId,
-      medicineName,
+      fertilizerName,
+      pesticideName,
+      diseaseName,
       dosage,
+      cost,
       notes,
     } = req.body;
 
@@ -36,8 +39,11 @@ const addEvent = async (req, res) => {
       field,
       status, // agar nahi diya to schema mein "upcoming" default hai
       farmerId,
-      medicineName,
+      fertilizerName,
+      pesticideName,
+      diseaseName,
       dosage,
+      cost,
       notes,
     });
 

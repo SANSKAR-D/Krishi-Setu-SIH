@@ -9,6 +9,7 @@ const eventRoutes = require("./routes/eventRoutes");
 const chatRoutes = require("./routes/chatRoutes"); 
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const authRoutes = require("./routes/authRoutes");
+const cropPlanRoutes = require("./routes/cropPlanRoutes");
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api", eventRoutes);
 app.use("/api", chatRoutes); 
 app.use("/api", dashboardRoutes);
+app.use("/api/crop-plans", cropPlanRoutes);
 
 // ---------- Start Server ----------
 const PORT = process.env.PORT || 5000;

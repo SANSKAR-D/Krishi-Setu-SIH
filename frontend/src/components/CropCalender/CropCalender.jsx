@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Plus,
   ChevronLeft,
@@ -8,625 +8,648 @@ import {
   Tractor,
   AlertTriangle,
   X,
+  Bug,
+  Beaker,
+  MapPin,
+  FilePlus,
 } from "lucide-react";
 
-// --------------------------------------------------
-// Legend
-// --------------------------------------------------
-
-const legendItems = [
-  { label: "Sowing", color: "bg-primary" },
-  { label: "Irrigation", color: "bg-secondary" },
-  { label: "Harvest", color: "bg-tertiary" },
-  { label: "Alert/Overdue", color: "bg-error" },
-];
-
-// --------------------------------------------------
-// Weekdays
-// --------------------------------------------------
+// ─── Constants ────────────────────────────────────────────────
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-// --------------------------------------------------
-// Event type -> color / icon mapping
-// --------------------------------------------------
-
-const eventTypeColorMap = {
-  sowing: "primary",
-  irrigation: "secondary",
-  harvest: "tertiary",
-  alert: "error",
-};
-
-const eventTypeIconMap = {
-  sowing: Leaf,
-  irrigation: Droplet,
-  harvest: Tractor,
-  alert: AlertTriangle,
-};
-
-const eventColorClasses = {
-  primary: "bg-primary/10 text-primary border border-primary/20",
-  secondary: "bg-secondary/10 text-secondary border border-secondary/20",
-  tertiary: "bg-tertiary/10 text-tertiary border border-tertiary/20",
-  error: "bg-error/10 text-error border border-error/20",
-};
-
 const monthNames = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
 ];
 
-const emptyForm = {
-  title: "",
-  eventType: "",
-  date: "",
-  crop: "",
-  field: "",
-  farmerId: "",
-  medicineName: "",
-  dosage: "",
-  notes: "",
+// Each event type gets a static accent color (hex) for inline styles
+const EVENT_META = {
+  sowing:     { label: "Sowing",      color: "#006948", bg: "#e8f5f0", icon: Leaf },
+  irrigation: { label: "Irrigation",  color: "#006c49", bg: "#e6f4ee", icon: Droplet },
+  harvest:    { label: "Harvest",     color: "#904821", bg: "#fce9dd", icon: Tractor },
+  fertilizer: { label: "Fertilizer",  color: "#1a5fa8", bg: "#deeaf8", icon: Beaker },
+  pesticide:  { label: "Pesticide",   color: "#7b2d8b", bg: "#f3e4f8", icon: Bug },
+  disease:    { label: "Disease",     color: "#b84c00", bg: "#fceadc", icon: AlertTriangle },
+  others:     { label: "Others",      color: "#4a5568", bg: "#e2e8f0", icon: Plus },
 };
 
-// --------------------------------------------------
-// Helpers
-// --------------------------------------------------
+const getEventMeta = (eventType = "") =>
+  EVENT_META[eventType.toLowerCase()] ?? EVENT_META.others;
+
+const emptyForm = {
+  title: "", eventType: "", date: "", crop: "",
+  field: "", farmerId: "F123", fertilizerName: "",
+  pesticideName: "", diseaseName: "", dosage: "", cost: "", notes: "",
+};
+
+// ─── Helpers ──────────────────────────────────────────────────
 
 const isSameDay = (d1, d2) =>
   d1.getFullYear() === d2.getFullYear() &&
-  d1.getMonth() === d2.getMonth() &&
-  d1.getDate() === d2.getDate();
+  d1.getMonth()    === d2.getMonth()    &&
+  d1.getDate()     === d2.getDate();
 
 const startOfDay = (d) => {
-  const copy = new Date(d);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+  const c = new Date(d);
+  c.setHours(0, 0, 0, 0);
+  return c;
 };
 
-const CropCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState("");
+// ─── Sub-components ───────────────────────────────────────────
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState(emptyForm);
-  const [formError, setFormError] = useState("");
+const SummaryCard = ({ icon: Icon, label, value, accentColor }) => (
+  <div
+    className="rounded-2xl p-4 border flex flex-col gap-3"
+    style={{ background: "#f3f4f5", borderColor: "#bccac0", flexShrink: 0 }}
+  >
+    <div
+      className="w-10 h-10 rounded-full flex items-center justify-center"
+      style={{ background: accentColor + "20" }}
+    >
+      <Icon className="w-5 h-5" style={{ color: accentColor }} />
+    </div>
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#3d4a42" }}>
+        {label}
+      </p>
+      <p className="mt-0.5 text-xl font-extrabold truncate" style={{ color: accentColor }} title={String(value)}>
+        {value}
+      </p>
+    </div>
+  </div>
+);
+
+// ─── Main Component ───────────────────────────────────────────
+
+const CropCalendar = () => {
+
+  // Global Context State
+  const farmerId = "F123";
+  const [cropPlans, setCropPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
+  
+  // Selected Profile
+  const [selectedFarm, setSelectedFarm] = useState("");
+  const [selectedCrop, setSelectedCrop] = useState("");
+
+  // Calendar State
+  const [currentDate,   setCurrentDate]   = useState(new Date());
+  const [events,        setEvents]        = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [fetchError,    setFetchError]    = useState("");
+
+  // Drawer
+  const [drawerDate, setDrawerDate] = useState(null);
+  const [formData,   setFormData]   = useState(emptyForm);
+  const [formError,  setFormError]  = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const month = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  // Wizard specifics
+  const [farms, setFarms] = useState([]);
+  const [wizardFarm, setWizardFarm] = useState("");
+  const [wizardCrop, setWizardCrop] = useState("");
+  const [creatingPlan, setCreatingPlan] = useState(false);
+
   const today = startOfDay(new Date());
 
-  // --------------------------------------------------
-  // Fetch events from backend
-  // --------------------------------------------------
-
+  // ── Fetch Data ──────────────────────────────────────────────
   useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-      setFetchError("");
+    // 1. Fetch Crop Plans
+    const initData = async () => {
+      setLoadingPlans(true);
       try {
-        const res = await fetch("http://localhost:5000/api/events");
+        const res = await fetch(`http://localhost:5000/api/crop-plans?farmerId=${farmerId}`);
         const data = await res.json();
-        if (data.success) {
-          setEvents(data.data || []);
+        if (data.success && data.data.length > 0) {
+          setCropPlans(data.data);
+          setSelectedFarm(data.data[0].farmName);
+          setSelectedCrop(data.data[0].cropName);
+          setShowWizard(false);
         } else {
-          setFetchError(data.message || "Events fetch nahi ho paaye");
+          setShowWizard(true);
         }
       } catch (err) {
-        setFetchError("Server se connect nahi ho paaya");
+        console.error("Failed to load crop plans", err);
+        setShowWizard(true); // default to wizard on failure to prompt action
       } finally {
-        setLoading(false);
+        setLoadingPlans(false);
+      }
+
+      // 2. Fetch GIS Farms for Wizard dropdown
+      try {
+        const gisUrl = import.meta.env.VITE_GIS_URL || "http://localhost:8001";
+        const res = await fetch(`${gisUrl}/api/farms`);
+        const data = await res.json();
+        if (data.status === "success") setFarms(data.data || []);
+      } catch (e) {
+        console.warn("Could not fetch GIS farms:", e.message);
       }
     };
-    fetchEvents();
+    initData();
   }, []);
 
-  // --------------------------------------------------
-  // Add event
-  // --------------------------------------------------
-
-  const handleFormChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const openModal = () => {
-    setFormData(emptyForm);
-    setFormError("");
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormError("");
-  };
-
-  const handleAddEvent = async (e) => {
-    e.preventDefault();
-
-    if (!formData.title || !formData.eventType || !formData.date || !formData.farmerId) {
-      setFormError("Title, Event Type, Date aur Farmer ID bharna zaroori hai");
-      return;
+  // Fetch events whenever we are NOT in the wizard (meaning we have an active context)
+  useEffect(() => {
+    if (!showWizard && selectedFarm && selectedCrop) {
+      fetchEvents();
     }
+  }, [showWizard, selectedFarm, selectedCrop]);
 
-    setSubmitting(true);
-    setFormError("");
-
+  const fetchEvents = async () => {
+    setLoadingEvents(true);
+    setFetchError("");
     try {
-      const res = await fetch("http://localhost:5000/api/events", {
+      const res  = await fetch(`http://localhost:5000/api/events?farmerId=${farmerId}`);
+      const data = await res.json();
+      if (data.success) setEvents(data.data || []);
+      else setFetchError(data.message || "Could not fetch events");
+    } catch {
+      setFetchError("Could not connect to server");
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  // ── Handlers ─────────────────────────────────────────────────
+  const handleFarmChange = (newFarm) => {
+    setSelectedFarm(newFarm);
+    // Find the first crop plan associated with this farm and select it automatically
+    const plan = cropPlans.find(p => p.farmName === newFarm);
+    if (plan) {
+      setSelectedCrop(plan.cropName);
+    }
+  };
+
+  const handleCreatePlan = async () => {
+    if (!wizardFarm || !wizardCrop) return;
+    setCreatingPlan(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/crop-plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ farmerId, farmName: wizardFarm, cropName: wizardCrop })
       });
       const data = await res.json();
-
       if (data.success) {
-        setEvents((prev) => [...prev, data.data]);
-        setFormData(emptyForm);
-        setIsModalOpen(false);
+        setCropPlans(prev => [data.data, ...prev]);
+        setSelectedFarm(wizardFarm);
+        setSelectedCrop(wizardCrop);
+        setShowWizard(false);
       } else {
-        setFormError(data.message || "Event add nahi ho paaya");
+        alert(data.message);
       }
-    } catch (err) {
-      setFormError("Server se connect nahi ho paaya");
+    } catch (e) {
+      alert("Failed to create crop plan");
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
+
+  const fc = (field, value) => setFormData(p => ({ ...p, [field]: value }));
+
+  const openDrawer = (cellDate) => {
+    const offset    = cellDate.getTimezoneOffset();
+    const localDate = new Date(cellDate.getTime() - offset * 60000);
+    setDrawerDate(cellDate);
+    setFormData({
+      ...emptyForm,
+      date:     localDate.toISOString().split("T")[0],
+      crop:     selectedCrop,
+      field:    selectedFarm,
+      farmerId: farmerId,
+    });
+    setFormError("");
+  };
+
+  const closeDrawer = () => { setDrawerDate(null); setFormError(""); };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.eventType) {
+      setFormError("Title and Event Type are required");
+      return;
+    }
+    setSubmitting(true);
+    setFormError("");
+    try {
+      const res  = await fetch("http://localhost:5000/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (data.success) { setEvents(p => [...p, data.data]); closeDrawer(); }
+      else setFormError(data.message || "Failed to save event");
+    } catch {
+      setFormError("Could not connect to server");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handlePreviousMonth = () => {
-    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  // ── Dynamic form fields ───────────────────────────────────────
+  const DynamicFields = () => {
+    const inputCls = "w-full px-3 py-2.5 rounded-lg text-sm font-medium outline-none transition-colors";
+    const inputStyle = { background: "#ffffff", border: "1.5px solid #bccac0", color: "#191c1d" };
+    const labelCls = "block text-xs font-bold uppercase tracking-wide mb-1.5";
+
+    switch (formData.eventType) {
+      case "Fertilizer":
+        return (
+          <>
+            <div>
+              <label className={labelCls} style={{ color: "#3d4a42" }}>Fertilizer Name *</label>
+              <input type="text" value={formData.fertilizerName} onChange={e => fc("fertilizerName", e.target.value)}
+                className={inputCls} style={inputStyle} placeholder="e.g. DAP, Urea" />
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: "#3d4a42" }}>Dosage / Quantity</label>
+              <input type="text" value={formData.dosage} onChange={e => fc("dosage", e.target.value)}
+                className={inputCls} style={inputStyle} placeholder="e.g. 50 kg/acre" />
+            </div>
+          </>
+        );
+      case "Pesticide":
+        return (
+          <>
+            <div>
+              <label className={labelCls} style={{ color: "#3d4a42" }}>Pesticide Name *</label>
+              <input type="text" value={formData.pesticideName} onChange={e => fc("pesticideName", e.target.value)}
+                className={inputCls} style={inputStyle} placeholder="e.g. Malathion, Chlorpyrifos" />
+            </div>
+            <div>
+              <label className={labelCls} style={{ color: "#3d4a42" }}>Dosage / Quantity</label>
+              <input type="text" value={formData.dosage} onChange={e => fc("dosage", e.target.value)}
+                className={inputCls} style={inputStyle} placeholder="e.g. 500 ml/acre" />
+            </div>
+          </>
+        );
+      case "Disease":
+        return (
+          <div>
+            <label className={labelCls} style={{ color: "#3d4a42" }}>Disease / Infection Name *</label>
+            <input type="text" value={formData.diseaseName} onChange={e => fc("diseaseName", e.target.value)}
+              className={inputCls} style={inputStyle} placeholder="e.g. Leaf Rust, Blight" />
+          </div>
+        );
+      case "Others":
+        return (
+          <div>
+            <label className={labelCls} style={{ color: "#3d4a42" }}>Cost / Expense (optional)</label>
+            <input type="text" value={formData.cost} onChange={e => fc("cost", e.target.value)}
+              className={inputCls} style={inputStyle} placeholder="e.g. 500 rs for tractor rent" />
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  };
+  // ── WIZARD ────────────────────────────────────────────────────
+  if (loadingPlans) {
+    return <div className="p-8 font-bold" style={{ color: "#006948" }}>Loading Calendar...</div>;
+  }
 
-  // --------------------------------------------------
-  // Build calendar grid for the current month
-  // --------------------------------------------------
+  if (showWizard) {
+    return (
+      <div style={{ width: "100%", minHeight: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 32, background: "#f8f9fa", boxSizing: "border-box" }}>
+        <div style={{ width: "100%", maxWidth: 460, background: "#ffffff", border: "1.5px solid #bccac0", borderRadius: 24, padding: 36, boxShadow: "0 4px 32px rgba(0,0,0,0.08)" }}>
+          
+          {cropPlans.length > 0 && (
+             <button onClick={() => setShowWizard(false)} className="mb-4 flex items-center gap-1 text-sm font-bold" style={{ color: "#6d7a72" }}>
+               <ChevronLeft className="w-4 h-4" /> Back to Calendar
+             </button>
+          )}
 
-  const year = currentDate.getFullYear();
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 shadow-md" style={{ background: "linear-gradient(135deg, #006948, #004d34)" }}>
+              <FilePlus className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-extrabold" style={{ color: "#191c1d" }}>New Crop Plan</h2>
+            <p className="mt-2 text-sm" style={{ color: "#3d4a42" }}>Create a dedicated profile for a new crop on your farm.</p>
+          </div>
+
+          <div className="flex flex-col gap-5">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Farm Location *</label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#006948" }} />
+                <select value={wizardFarm} onChange={e => setWizardFarm(e.target.value)}
+                  className="w-full h-12 pl-9 pr-4 rounded-xl text-sm font-medium outline-none appearance-none cursor-pointer"
+                  style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }}>
+                  <option value="">Select a farm…</option>
+                  {farms.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                </select>
+                <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none rotate-90" style={{ color: "#6d7a72" }} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Crop Name *</label>
+              <div className="relative">
+                <Leaf className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#006948" }} />
+                <input type="text" value={wizardCrop} onChange={e => setWizardCrop(e.target.value)}
+                  className="w-full h-12 pl-9 pr-4 rounded-xl text-sm font-medium outline-none"
+                  style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }}
+                  placeholder="e.g. Wheat, Rice, Sugarcane…" />
+              </div>
+            </div>
+
+            <button disabled={!wizardFarm || !wizardCrop || creatingPlan} onClick={handleCreatePlan}
+              className="mt-2 w-full h-13 rounded-xl font-bold text-base tracking-wide transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: "#006948", color: "#ffffff", height: 52 }}>
+              {creatingPlan ? "Saving..." : "Create Plan →"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Derived Data for Header Dropdowns ────────────────────────
+  const uniqueFarms = Array.from(new Set(cropPlans.map(p => p.farmName)));
+  const cropsForSelectedFarm = cropPlans.filter(p => p.farmName === selectedFarm).map(p => p.cropName);
+
+  // ── CALENDAR GRID BUILD ───────────────────────────────────────
+  const year       = currentDate.getFullYear();
   const monthIndex = currentDate.getMonth();
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const firstWeekday = new Date(year, monthIndex, 1).getDay();
+  const daysInMonth   = new Date(year, monthIndex + 1, 0).getDate();
+  const firstWeekday  = new Date(year, monthIndex, 1).getDay();
 
-  const leadingBlanks = Array.from({ length: firstWeekday }, (_, i) => ({
-    blank: true,
-    key: `blank-${i}`,
-  }));
-
-  const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
-    const dayNumber = i + 1;
-    const cellDate = new Date(year, monthIndex, dayNumber);
-    const dayEvents = events.filter((ev) => isSameDay(new Date(ev.date), cellDate));
-    return {
-      blank: false,
-      key: `day-${dayNumber}`,
-      day: dayNumber,
-      isToday: isSameDay(cellDate, today),
-      events: dayEvents,
-    };
+  const blanks   = Array.from({ length: firstWeekday }, (_, i) => ({ blank: true, key: `b-${i}` }));
+  const daysCells = Array.from({ length: daysInMonth }, (_, i) => {
+    const day      = i + 1;
+    const dateObj  = new Date(year, monthIndex, day);
+    const dayEvs   = events.filter(ev => ev.field === selectedFarm && ev.crop === selectedCrop && isSameDay(new Date(ev.date), dateObj));
+    return { blank: false, key: `d-${day}`, day, isToday: isSameDay(dateObj, today), dateObj, events: dayEvs };
   });
+  const cells = [...blanks, ...daysCells];
 
-  const calendarCells = [...leadingBlanks, ...monthDays];
+  // ── Summary stats ─────────────────────────────────────────────
+  const ctxEvs = events.filter(ev => ev.field === selectedFarm && ev.crop === selectedCrop);
+  const upcomingSowing  = ctxEvs.filter(ev => ev.eventType === "Sowing"  && startOfDay(new Date(ev.date)) >= today).length;
+  const upcomingHarvest = ctxEvs.filter(ev => ev.eventType === "Harvest" && startOfDay(new Date(ev.date)) >= today).length;
+  const overdue         = ctxEvs.filter(ev => startOfDay(new Date(ev.date)) < today && ev.status !== "completed").length;
 
-  // --------------------------------------------------
-  // Derived summary data (from real events)
-  // --------------------------------------------------
-
-  const activeCropsCount = new Set(events.map((ev) => ev.crop).filter(Boolean)).size;
-
-  const upcomingSowingCount = events.filter(
-    (ev) => ev.eventType === "Sowing" && startOfDay(new Date(ev.date)) >= today
-  ).length;
-
-  const readyToHarvestCount = events.filter(
-    (ev) => ev.eventType === "Harvest" && startOfDay(new Date(ev.date)) >= today
-  ).length;
-
-  const overdueTasksCount = events.filter(
-    (ev) => startOfDay(new Date(ev.date)) < today
-  ).length;
-
-  const summaryCards = [
-    { label: "Active Crops", value: activeCropsCount, color: "text-primary", icon: Leaf, iconBg: "bg-primary/10" },
-    { label: "Upcoming Sowing", value: upcomingSowingCount, color: "text-secondary", icon: Droplet, iconBg: "bg-secondary/10" },
-    { label: "Ready to Harvest", value: readyToHarvestCount, color: "text-tertiary", icon: Tractor, iconBg: "bg-tertiary/10" },
-    { label: "Overdue Tasks", value: overdueTasksCount, color: "text-error", icon: AlertTriangle, iconBg: "bg-error/10" },
-  ];
-
-  // --------------------------------------------------
-  // Upcoming tasks list (from real events, sorted by date)
-  // --------------------------------------------------
-
-  const upcomingTasks = [...events]
+  // ── Upcoming task list ────────────────────────────────────────
+  const upcomingList = [...ctxEvs]
+    .filter(ev => startOfDay(new Date(ev.date)) >= today)
     .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 5)
-    .map((ev) => {
-      const evDate = startOfDay(new Date(ev.date));
-      const diffDays = Math.round((evDate - today) / (1000 * 60 * 60 * 24));
-      const colorKey = eventTypeColorMap[ev.eventType?.toLowerCase()] || "primary";
-      const Icon = eventTypeIconMap[ev.eventType?.toLowerCase()] || Leaf;
-
-      let meta = "";
-      let metaColor = "text-on-surface-variant";
-      if (diffDays < 0) {
-        meta = `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? "s" : ""}`;
-        metaColor = "text-error";
-      } else if (diffDays === 0) {
-        meta = "Due today";
-      } else {
-        meta = `Due ${evDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-      }
-
-      return {
-        icon: Icon,
-        iconColor: `text-${colorKey}`,
-        iconBg: `bg-${colorKey}/10`,
-        text: `${ev.eventType} - ${ev.crop || ev.title} (${ev.field || "N/A"})`,
-        meta,
-        metaColor,
-      };
-    });
+    .slice(0, 5);
 
   return (
-    <main className="flex-1 min-w-0 min-h-0 p-margin-mobile md:p-gutter flex flex-col gap-md bg-background overflow-y-auto">
-      {/* HEADER */}
-      <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-sm">
-        <div>
-          <h1 className="headline-lg-mobile md:headline-lg headline-lg-mobile md:headline-lg text-on-surface">
-            Crop Calendar
-          </h1>
-          <p className="body-md text-on-surface-variant mt-1">
-            Track sowing, growth stages and harvest windows across all fields
+    <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", overflow: "hidden", background: "#f8f9fa" }}>
+
+      {/* ══ MAIN SCROLL AREA ══════════════════════════════════════ */}
+      <div style={{ flex: 1, minWidth: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 20, padding: 24, marginRight: drawerDate ? 400 : 0, transition: "margin-right 0.3s ease", boxSizing: "border-box" }}>
+
+        {/* ── PAGE HEADER ──────────────────────────────────────── */}
+        <div style={{ flexShrink: 0 }}>
+          <div className="flex flex-wrap items-center gap-4 mb-2">
+            
+            {/* Dynamic Farm Selection */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "#e8f5f0", border: "1px solid #bccac0" }}>
+              <MapPin className="w-3 h-3" style={{ color: "#006948" }} />
+              <select
+                value={selectedFarm}
+                onChange={e => handleFarmChange(e.target.value)}
+                className="text-xs font-bold outline-none cursor-pointer bg-transparent"
+                style={{ color: "#006948" }}
+              >
+                {uniqueFarms.map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Dynamic Crop Selection (constrained by Farm) */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "#e8f5f0", border: "1px solid #bccac0" }}>
+              <Leaf className="w-3 h-3" style={{ color: "#006948" }} />
+              <select
+                value={selectedCrop}
+                onChange={e => setSelectedCrop(e.target.value)}
+                className="text-xs font-bold outline-none cursor-pointer bg-transparent"
+                style={{ color: "#006948" }}
+              >
+                {cropsForSelectedFarm.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Add New Plan Button */}
+            <button
+              onClick={() => { setWizardFarm(""); setWizardCrop(""); setShowWizard(true); }}
+              className="text-xs font-bold flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors hover:bg-gray-200"
+              style={{ color: "#3d4a42", border: "1px dashed #6d7a72" }}
+            >
+              <Plus className="w-3 h-3" /> New Plan
+            </button>
+          </div>
+
+          <h1 className="text-3xl font-extrabold" style={{ color: "#191c1d" }}>Crop Calendar</h1>
+          <p className="mt-1 text-sm" style={{ color: "#3d4a42" }}>
+            Track sowing, irrigation, harvesting, treatments and disease events for your crop.
           </p>
         </div>
 
-        <button
-          onClick={openModal}
-          className="self-start md:self-auto flex items-center justify-center gap-2 px-md py-sm bg-primary text-on-primary rounded-xl font-bold shadow-sm hover:opacity-90 transition-all"
-        >
-          <Plus className="w-5 h-5" />
-          <span className="label-sm">Add Crop Event</span>
-        </button>
-      </section>
-
-      {fetchError && (
-        <p className="text-error text-sm">{fetchError}</p>
-      )}
-
-      {/* SUMMARY CARDS */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-sm md:gap-md">
-        {summaryCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.label}
-              className="bg-surface-container-low rounded-2xl p-sm md:p-md border border-outline-variant shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className={`w-11 h-11 rounded-full ${card.iconBg} flex items-center justify-center mb-4`}>
-                <Icon className={`w-5 h-5 ${card.color}`} />
-              </div>
-              <p className="label-sm text-on-surface-variant">{card.label}</p>
-              <p className={`mt-1 headline-lg-mobile ${card.color}`}>
-                {card.value}
-              </p>
-            </div>
-          );
-        })}
-      </section>
-
-      {/* LEGEND */}
-      <section className="flex flex-wrap items-center gap-md label-sm text-on-surface-variant">
-        {legendItems.map((item) => (
-          <div key={item.label} className="flex items-center gap-xs">
-            <span className={`w-3 h-3 rounded-full ${item.color}`} />
-            <span>{item.label}</span>
+        {fetchError && (
+          <div className="px-4 py-3 rounded-xl text-sm font-semibold" style={{ background: "#fde8e8", color: "#ba1a1a", border: "1px solid #f5c2c2" }}>
+            {fetchError}
           </div>
-        ))}
-      </section>
+        )}
 
-      {/* CALENDAR */}
-      <section className="bg-surface-container-low rounded-2xl border border-outline-variant shadow-sm">
-        {/* Month Header */}
-        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-outline-variant">
-          <button
-            onClick={handlePreviousMonth}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <h2 className="title-md text-on-surface">{month}</h2>
-
-          <button
-            onClick={handleNextMonth}
-            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors"
-            aria-label="Next month"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+        {/* ── SUMMARY CARDS ─────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" style={{ flexShrink: 0 }}>
+          <SummaryCard icon={MapPin}       label="Farm"            value={selectedFarm}   accentColor="#006948" />
+          <SummaryCard icon={Leaf}         label="Sowing (Ahead)"  value={upcomingSowing}  accentColor="#006c49" />
+          <SummaryCard icon={Tractor}      label="Harvest (Ahead)" value={upcomingHarvest} accentColor="#904821" />
+          <SummaryCard icon={AlertTriangle} label="Overdue Tasks"  value={overdue}         accentColor="#ba1a1a" />
         </div>
 
-        {/* Weekday Header */}
-        <div className="grid grid-cols-7 border-b border-outline-variant">
-          {weekdays.map((day) => (
-            <div key={day} className="py-3 text-center label-sm font-semibold text-on-surface-variant">
-              {day}
+        {/* ── LEGEND ───────────────────────────────────────────── */}
+        <div className="flex flex-wrap gap-x-5 gap-y-2 px-4 py-3 rounded-xl text-xs font-semibold" style={{ background: "#f3f4f5", border: "1px solid #bccac0", flexShrink: 0 }}>
+          {Object.entries(EVENT_META).map(([key, m]) => (
+            <div key={key} className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: m.color }} />
+              <span style={{ color: "#3d4a42" }}>{m.label}</span>
             </div>
           ))}
         </div>
 
-        {/* Calendar Days */}
-        <div className="grid grid-cols-7">
-          {calendarCells.map((cell) => {
-            if (cell.blank) {
-              return (
-                <div
-                  key={cell.key}
-                  className="min-h-[90px] md:min-h-[110px] p-2 border-r border-b border-outline-variant bg-surface-container-low/50"
-                />
-              );
-            }
+        {/* ── CALENDAR SECTION ─────────────────────────────────── */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#ffffff", border: "1.5px solid #bccac0", flexShrink: 0 }}>
+          {/* Month header */}
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid #bccac0", background: "#f3f4f5" }}>
+            <button onClick={() => setCurrentDate(p => new Date(p.getFullYear(), p.getMonth() - 1, 1))} className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-gray-200">
+              <ChevronLeft className="w-5 h-5" style={{ color: "#191c1d" }} />
+            </button>
+            <h2 className="text-lg font-extrabold" style={{ color: "#191c1d" }}>{monthNames[monthIndex]} {year}</h2>
+            <button onClick={() => setCurrentDate(p => new Date(p.getFullYear(), p.getMonth() + 1, 1))} className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-gray-200">
+              <ChevronRight className="w-5 h-5" style={{ color: "#191c1d" }} />
+            </button>
+          </div>
 
-            const visibleEvents = cell.events.slice(0, 2);
-            const extraCount = cell.events.length - visibleEvents.length;
-
-            return (
-              <div
-                key={cell.key}
-                className={`min-h-[90px] md:min-h-[110px] p-2 border-r border-b border-outline-variant relative ${
-                  cell.isToday ? "bg-primary/5" : ""
-                }`}
-              >
-                <span
-                  className={`text-sm ${
-                    cell.isToday
-                      ? "inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-on-primary font-bold"
-                      : "text-on-surface-variant"
-                  }`}
-                >
-                  {cell.day}
-                </span>
-
-                <div className="mt-1 flex flex-col gap-1">
-                  {visibleEvents.map((ev) => {
-                    const colorKey = eventTypeColorMap[ev.eventType?.toLowerCase()] || "primary";
-                    return (
-                      <div
-                        key={ev._id}
-                        className={`px-2 py-1 rounded-md text-[10px] md:text-[11px] font-bold truncate ${
-                          eventColorClasses[colorKey]
-                        }`}
-                        title={ev.title}
-                      >
-                        {ev.title}
-                      </div>
-                    );
-                  })}
-                  {extraCount > 0 && (
-                    <div className="text-[10px] text-on-surface-variant px-2">
-                      +{extraCount} more
-                    </div>
-                  )}
-                </div>
+          {/* Weekday row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid #e7e8e9" }}>
+            {weekdays.map(d => (
+              <div key={d} style={{ padding: "10px 0", textAlign: "center", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6d7a72" }}>
+                {d}
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Day cells */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {cells.map(cell => {
+              if (cell.blank) return <div key={cell.key} style={{ minHeight: 110, borderRight: "1px solid #e7e8e9", borderBottom: "1px solid #e7e8e9", background: "#fafafa" }} />;
+
+              const visible = cell.events.slice(0, 3);
+              const extra   = cell.events.length - visible.length;
+
+              return (
+                <div key={cell.key} onClick={() => openDrawer(cell.dateObj)}
+                  style={{ minHeight: 110, padding: 8, position: "relative", cursor: "pointer", borderRight: "1px solid #e7e8e9", borderBottom: "1px solid #e7e8e9", background: cell.isToday ? "#e8f5f0" : "#ffffff", transition: "background 0.15s", boxSizing: "border-box" }}
+                  onMouseEnter={e => { if (!cell.isToday) e.currentTarget.style.background = "#f0faf5"; }}
+                  onMouseLeave={e => { if (!cell.isToday) e.currentTarget.style.background = "#ffffff"; }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <span style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontSize: 13, fontWeight: 700, ...(cell.isToday ? { background: "#006948", color: "#ffffff" } : { color: "#3d4a42" }) }}>
+                      {cell.day}
+                    </span>
+                    <Plus style={{ width: 13, height: 13, color: "#006948", opacity: 0.3 }} />
+                  </div>
+
+                  <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+                    {visible.map(ev => {
+                      const m = getEventMeta(ev.eventType);
+                      const Icon = m.icon;
+                      return (
+                        <div key={ev._id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 5, fontSize: 10, fontWeight: 700, background: m.bg, color: m.color, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }} title={ev.title}>
+                          <Icon style={{ width: 9, height: 9, flexShrink: 0 }} />
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{ev.title}</span>
+                        </div>
+                      );
+                    })}
+                    {extra > 0 && <div style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 5, background: "#e7e8e9", color: "#6d7a72", alignSelf: "flex-start" }}>+{extra} more</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </section>
 
-      {/* UPCOMING TASKS */}
-      <section className="bg-surface-container-low rounded-2xl border border-outline-variant p-md shadow-sm">
-        <h3 className="title-md text-on-surface mb-sm">Upcoming Tasks</h3>
-
-        {loading ? (
-          <p className="text-sm text-on-surface-variant">Loading...</p>
-        ) : upcomingTasks.length === 0 ? (
-          <p className="text-sm text-on-surface-variant">Koi event nahi mila</p>
-        ) : (
-          <>
-            <div className="flex flex-col">
-              {upcomingTasks.map((task, index) => {
-                const Icon = task.icon;
+        {/* ── UPCOMING TASKS LIST ───────────────────────────────── */}
+        <div className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1.5px solid #bccac0", flexShrink: 0 }}>
+          <h3 className="text-lg font-extrabold mb-4" style={{ color: "#191c1d" }}>Upcoming Events</h3>
+          {loadingEvents ? (
+            <p className="text-sm animate-pulse" style={{ color: "#6d7a72" }}>Loading events…</p>
+          ) : upcomingList.length === 0 ? (
+            <div className="py-8 text-center rounded-xl text-sm font-medium" style={{ background: "#f3f4f5", color: "#6d7a72", border: "1.5px dashed #bccac0" }}>
+              No upcoming events — click a date to add one!
+            </div>
+          ) : (
+            <div className="flex flex-col divide-y" style={{ borderColor: "#e7e8e9" }}>
+              {upcomingList.map((ev, i) => {
+                const m      = getEventMeta(ev.eventType);
+                const Icon   = m.icon;
+                const evDate = startOfDay(new Date(ev.date));
+                const diff   = Math.round((evDate - today) / 86400000);
+                const badge  = diff === 0 ? "Today" : `in ${diff} day${diff !== 1 ? "s" : ""}`;
                 return (
-                  <div
-                    key={index}
-                    className="flex items-center gap-sm py-4 border-b border-outline-variant last:border-b-0"
-                  >
-                    <div className={`w-10 h-10 rounded-full ${task.iconBg} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-5 h-5 ${task.iconColor}`} />
+                  <div key={i} className="flex items-center gap-4 py-3.5">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: m.bg }}>
+                      <Icon className="w-5 h-5" style={{ color: m.color }} />
                     </div>
-
-                    <p className="body-md text-on-surface flex-1">{task.text}</p>
-
-                    <span className={`hidden sm:block text-sm font-semibold ${task.metaColor}`}>
-                      {task.meta}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate" style={{ color: "#191c1d" }}>{ev.title}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "#6d7a72" }}>{m.label} · {ev.crop}</p>
+                    </div>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: m.bg, color: m.color }}>
+                      {badge}
                     </span>
                   </div>
                 );
               })}
             </div>
-
-            <div className="sm:hidden mt-2 flex flex-col gap-1">
-              {upcomingTasks.map((task, index) => (
-                <div key={index} className={`text-right text-xs ${task.metaColor}`}>
-                  {task.meta}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </section>
-
-      {/* ADD EVENT MODAL */}
-      {isModalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.5)",
-            padding: "16px",
-          }}
-        >
-          <div
-            className="bg-surface-container-low rounded-2xl border border-outline-variant shadow-lg"
-            style={{
-              width: "100%",
-              maxWidth: "448px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-          >
-            <div className="flex items-center justify-between px-md py-sm border-b border-outline-variant">
-              <h3 className="title-md text-on-surface">Add Crop Event</h3>
-              <button
-                onClick={closeModal}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddEvent} className="flex flex-col gap-sm p-md">
-              {formError && <p className="text-error text-sm">{formError}</p>}
-
-              <div>
-                <label className="label-sm text-on-surface-variant">Title *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleFormChange("title", e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                  placeholder="e.g. Wheat Sowing"
-                />
-              </div>
-
-              <div>
-                <label className="label-sm text-on-surface-variant">Event Type *</label>
-                <select
-                  value={formData.eventType}
-                  onChange={(e) => handleFormChange("eventType", e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                >
-                  <option value="">Select type</option>
-                  <option value="Sowing">Sowing</option>
-                  <option value="Irrigation">Irrigation</option>
-                  <option value="Harvest">Harvest</option>
-                  <option value="Alert">Alert</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="label-sm text-on-surface-variant">Date *</label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => handleFormChange("date", e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-sm">
-                <div>
-                  <label className="label-sm text-on-surface-variant">Crop</label>
-                  <input
-                    type="text"
-                    value={formData.crop}
-                    onChange={(e) => handleFormChange("crop", e.target.value)}
-                    className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                    placeholder="e.g. Wheat"
-                  />
-                </div>
-                <div>
-                  <label className="label-sm text-on-surface-variant">Field</label>
-                  <input
-                    type="text"
-                    value={formData.field}
-                    onChange={(e) => handleFormChange("field", e.target.value)}
-                    className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                    placeholder="e.g. North Field"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="label-sm text-on-surface-variant">Farmer ID *</label>
-                <input
-                  type="text"
-                  value={formData.farmerId}
-                  onChange={(e) => handleFormChange("farmerId", e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                  placeholder="e.g. F123"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-sm">
-                <div>
-                  <label className="label-sm text-on-surface-variant">Medicine Name</label>
-                  <input
-                    type="text"
-                    value={formData.medicineName}
-                    onChange={(e) => handleFormChange("medicineName", e.target.value)}
-                    className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="label-sm text-on-surface-variant">Dosage</label>
-                  <input
-                    type="text"
-                    value={formData.dosage}
-                    onChange={(e) => handleFormChange("dosage", e.target.value)}
-                    className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="label-sm text-on-surface-variant">Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => handleFormChange("notes", e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface"
-                  rows={2}
-                  placeholder="Optional"
-                />
-              </div>
-
-              <div className="flex justify-end gap-sm mt-sm">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-md py-sm rounded-xl border border-outline-variant text-on-surface font-bold hover:bg-surface-container-high transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-md py-sm rounded-xl bg-primary text-on-primary font-bold shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
-                >
-                  {submitting ? "Adding..." : "Add Event"}
-                </button>
-              </div>
-            </form>
-          </div>
+          )}
         </div>
-      )}
-    </main>
+        <div className="h-8" />
+      </div>
+
+      {/* ══ MOBILE OVERLAY ═══════════════════════════════════════ */}
+      {drawerDate && <div className="fixed inset-0 z-30 lg:hidden" style={{ background: "rgba(0,0,0,0.25)", backdropFilter: "blur(2px)" }} onClick={closeDrawer} />}
+
+      {/* ══ RIGHT DRAWER ══════════════════════════════════════════ */}
+      <aside className="absolute top-0 right-0 h-full flex flex-col transition-transform duration-300 ease-in-out z-40" style={{ width: 400, background: "#ffffff", borderLeft: "1.5px solid #bccac0", transform: drawerDate ? "translateX(0)" : "translateX(100%)", boxShadow: drawerDate ? "-8px 0 32px rgba(0,0,0,0.08)" : "none" }}>
+        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: "1px solid #e7e8e9", background: "#f3f4f5" }}>
+          <div>
+            <h3 className="text-lg font-extrabold" style={{ color: "#191c1d" }}>Add Event</h3>
+            <p className="text-xs mt-0.5 font-medium" style={{ color: "#6d7a72" }}>{drawerDate ? drawerDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : ""}</p>
+          </div>
+          <button onClick={closeDrawer} className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-gray-200" style={{ color: "#6d7a72" }}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {formError && (
+              <div className="px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2" style={{ background: "#fde8e8", color: "#ba1a1a", border: "1px solid #f5c2c2" }}>
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {formError}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5" style={{ background: "#e8f5f0", color: "#006948" }}>
+                <Leaf className="w-3 h-3" /> {selectedCrop}
+              </span>
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5" style={{ background: "#e8f5f0", color: "#006948" }}>
+                <MapPin className="w-3 h-3" /> {selectedFarm}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Event Title *</label>
+              <input type="text" value={formData.title} onChange={e => fc("title", e.target.value)} className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none" style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }} placeholder="e.g. First Irrigation, DAP Application…" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Event Type *</label>
+              <div className="relative">
+                <select value={formData.eventType} onChange={e => fc("eventType", e.target.value)} className="w-full px-4 py-3 pr-10 rounded-xl text-sm font-medium outline-none appearance-none cursor-pointer" style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }}>
+                  <option value="">Select event type…</option>
+                  <option value="Sowing">🌱 Sowing</option>
+                  <option value="Irrigation">💧 Irrigation / Water Supplied</option>
+                  <option value="Harvest">🚜 Harvest</option>
+                  <option value="Fertilizer">🧪 Fertilizer Application</option>
+                  <option value="Pesticide">🐛 Pesticide Application</option>
+                  <option value="Disease">⚠️ Disease / Crop Infection</option>
+                  <option value="Others">📝 Others (e.g., Tractor Cost, Extra Work)</option>
+                </select>
+                <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none rotate-90" style={{ color: "#6d7a72" }} />
+              </div>
+            </div>
+
+            {formData.eventType && (
+              <div className="flex flex-col gap-4 rounded-xl p-4" style={{ background: "#f3f4f5", border: "1px solid #e7e8e9" }}>
+                <DynamicFields />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Notes / Observations</label>
+              <textarea value={formData.notes} onChange={e => fc("notes", e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none resize-none" style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }} placeholder="Any additional observations…" />
+            </div>
+
+            <button type="submit" disabled={submitting} className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#006948", color: "#ffffff" }}>
+              {submitting ? "Saving…" : "Save Event"}
+            </button>
+            <div className="h-4" />
+          </form>
+        </div>
+      </aside>
+    </div>
   );
 };
 
