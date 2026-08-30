@@ -7,6 +7,7 @@ import ExpertChat from './components/ExpertChat/ExpertChat'
 import CropCalendar from './components/CropCalender/CropCalender'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import GISMap from './pages/GISMap'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const DashboardLayout = () => (
@@ -19,6 +20,7 @@ const DashboardLayout = () => (
         <Route path="/soil-health" element={<SoilHealth />} />
         <Route path="/crop-calendar" element={<CropCalendar />} />
         <Route path="/expert-chat" element={<ExpertChat />} />
+        <Route path="/gis" element={<GISMap />} />
       </Routes>
     </div>
   </div>
