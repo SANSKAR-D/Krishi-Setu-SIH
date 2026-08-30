@@ -44,7 +44,7 @@ async def ask_agent(request: AgentRequest):
             "messages": [HumanMessage(content=request.user_query)],
             "user_query": request.user_query,
             "image_urls": request.image_urls,
-            "user_id": request.thread_id
+            "user_id": request.thread_id or "dummy"
         }
         
         # Remove None values to keep state clean 

@@ -1,17 +1,10 @@
 langgraph
-langchain
-langchain_community
 langchain_google_genai
 langchain_core
-langchain_ollama
 Fastapi
 uvicorn
 pydantic
 langchain_tavily
-pypdf
-langchain-postgres
-pgvector
-psycopg2-binary
 python-dotenv
 pinecone-client
 langchain-pinecone
