@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 from agent import agent_app, pool
@@ -12,6 +13,13 @@ async def lifespan(app: FastAPI):
         pool.close()
 
 app = FastAPI(title="Krishi Setu Agentic Router", version="1.0.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class AgentRequest(BaseModel):
     user_query: str
@@ -21,6 +29,10 @@ class AgentRequest(BaseModel):
 class AgentResponse(BaseModel):
     final_advice: str
     state_details: Dict[str, Any]
+
+@app.get('/')
+def read_root():
+    return {"message" : "Agentic Router is running!"}
 
 @app.post("/ask", response_model=AgentResponse)
 async def ask_agent(request: AgentRequest):
