@@ -287,27 +287,38 @@ const MapDashboard = () => {
     lastCoords.current = { lat, lng };
 
     // Attempt 1: Backend aggregator
+    let backendData = null;
     try {
       const res = await axios.get(`${GIS_URL}/api/environment`, {
         params: { lat, lng },
         timeout: 60000,
       });
       if (res.data.status === 'success') {
-        setEnvData(res.data.data);
-        setEnvSource('backend');
-        setEnvLoading(false);
-        return;
+        backendData = res.data.data;
       }
     } catch (backendErr) {
       console.warn('[GIS] Backend unavailable, trying direct APIs…', backendErr.message);
     }
 
+    const isWeatherValid = backendData?.weather?.temperature != null;
+    const isElevationValid = backendData?.elevation?.elevation_m != null;
+    const isSoilValid = backendData?.soil?.ph != null || backendData?.soil?.nitrogen_g_kg != null;
+
+    if (backendData && isWeatherValid && isElevationValid && isSoilValid) {
+        setEnvData(backendData);
+        setEnvSource('backend');
+        setEnvLoading(false);
+        return;
+    }
+
+    console.warn('[GIS] Backend data incomplete or unavailable, falling back to direct APIs for missing data…');
+
     // Attempt 2: Direct API calls in parallel
     try {
       const [weatherRes, elevationRes, soilRes] = await Promise.allSettled([
-        fetchWeatherDirect(lat, lng),
-        fetchElevationDirect(lat, lng),
-        fetchSoilDirect(lat, lng),
+        !isWeatherValid ? fetchWeatherDirect(lat, lng) : Promise.resolve(backendData?.weather || {}),
+        !isElevationValid ? fetchElevationDirect(lat, lng) : Promise.resolve(backendData?.elevation || {}),
+        !isSoilValid ? fetchSoilDirect(lat, lng) : Promise.resolve(backendData?.soil || {}),
       ]);
 
       const weatherData = weatherRes.status === 'fulfilled' ? weatherRes.value : {
