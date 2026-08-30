@@ -7,6 +7,7 @@ import CropCalendar from './components/CropCalender/CropCalender'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import GISMap from './pages/GISMap'
+import MarketData from './pages/MarketData'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const DashboardLayout = () => (
@@ -19,6 +20,7 @@ const DashboardLayout = () => (
         <Route path="/crop-calendar" element={<CropCalendar />} />
         <Route path="/expert-chat" element={<ExpertChat />} />
         <Route path="/gis" element={<GISMap />} />
+        <Route path="/market-data" element={<MarketData />} />
       </Routes>
     </div>
   </div>
