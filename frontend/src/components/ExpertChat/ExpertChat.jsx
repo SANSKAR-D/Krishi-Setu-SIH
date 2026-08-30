@@ -4,17 +4,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   Bot,
-  // AlertTriangle,
-  // AlertCircle,
-  // ThumbsUp,
-  // ShoppingCart,
   Camera,
   ImagePlus,
-  Mic,
   Send,
-  // PlusCircle,
   X,
-  StopCircle,
   Loader2,
   Trash2
 } from "lucide-react";
@@ -40,13 +33,8 @@ const ExpertChat = () => {
   
   const [selectedImages, setSelectedImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
-  
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -71,45 +59,8 @@ const ExpertChat = () => {
     setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        setAudioBlob(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Microphone access denied or not available", err);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const removeAudio = () => {
-    setAudioBlob(null);
-  };
-
   const handleSend = async () => {
-    if (!message.trim() && selectedImages.length === 0 && !audioBlob) return;
+    if (!message.trim() && selectedImages.length === 0) return;
 
     // Build Form Data
     const formData = new FormData();
@@ -117,14 +68,12 @@ const ExpertChat = () => {
     if (selectedImages.length > 0) {
       selectedImages.forEach((img) => formData.append("image", img));
     }
-    if (audioBlob) formData.append("audio", audioBlob, "voice_record.webm");
 
     // Add user message to UI
     const newUserMsg = {
       role: "user",
       text: message,
       image: previewUrls.length > 0 ? [...previewUrls] : null,
-      hasAudio: !!audioBlob,
     };
     setMessages((prev) => [...prev, newUserMsg]);
 
@@ -132,7 +81,6 @@ const ExpertChat = () => {
     setMessage("");
     setSelectedImages([]);
     setPreviewUrls([]);
-    setAudioBlob(null);
     setIsLoading(true);
 
     try {
@@ -212,12 +160,6 @@ const ExpertChat = () => {
                   ) : (
                     <img src={msg.image} alt="User Upload" className="max-w-full h-auto rounded-lg mb-2 max-h-48 object-cover" />
                   ))}
-                  {msg.hasAudio && (
-                    <div className="flex items-center gap-2 mb-2 bg-primary-container text-on-primary-container p-2 rounded-lg">
-                      <Mic className="w-4 h-4" />
-                      <span className="text-sm font-semibold">Voice Message Attached</span>
-                    </div>
-                  )}
                   {msg.text && (
                     <div className="body-md whitespace-pre-wrap prose prose-sm max-w-none">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
@@ -247,8 +189,8 @@ const ExpertChat = () => {
       <div className="w-full p-4 bg-surface-bright shrink-0 z-10">
         <div className="max-w-[800px] mx-auto relative bg-surface rounded-2xl border border-outline-variant shadow-lg flex flex-col p-2 focus-within:border-primary transition-all">
           
-          {/* Previews */}
-          {(previewUrls.length > 0 || audioBlob) && (
+          {/* Image Previews */}
+          {previewUrls.length > 0 && (
              <div className="flex items-center gap-4 mb-2 p-2 bg-surface-container-low rounded-xl overflow-x-auto">
                {previewUrls.map((url, index) => (
                  <div key={index} className="relative flex-shrink-0">
@@ -258,15 +200,6 @@ const ExpertChat = () => {
                    </button>
                  </div>
                ))}
-               {audioBlob && (
-                 <div className="relative flex items-center gap-2 bg-primary-container text-on-primary-container px-3 py-2 rounded-lg">
-                    <Mic className="w-5 h-5" />
-                    <span className="text-sm font-semibold">Voice Message Ready</span>
-                    <button onClick={removeAudio} className="absolute -top-2 -right-2 bg-error text-on-error rounded-full p-1 shadow-sm hover:opacity-90">
-                     <X className="w-3 h-3" />
-                   </button>
-                 </div>
-               )}
              </div>
           )}
 
@@ -285,29 +218,11 @@ const ExpertChat = () => {
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               disabled={isLoading}
             />
-            
-            {!isRecording ? (
-              <button 
-                onClick={startRecording}
-                className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low mr-1"
-                title="Record Audio"
-              >
-                <Mic className="w-5 h-5" />
-              </button>
-            ) : (
-              <button 
-                onClick={stopRecording}
-                className="p-2 text-error hover:bg-error/10 transition-colors rounded-full mr-1 animate-pulse"
-                title="Stop Recording"
-              >
-                <StopCircle className="w-5 h-5" />
-              </button>
-            )}
 
             <button
               className="p-2 bg-primary text-on-primary rounded-xl hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center disabled:opacity-50"
               onClick={handleSend}
-              disabled={isLoading || (!message.trim() && selectedImages.length === 0 && !audioBlob)}
+              disabled={isLoading || (!message.trim() && selectedImages.length === 0)}
             >
               <Send className="w-5 h-5" />
             </button>
