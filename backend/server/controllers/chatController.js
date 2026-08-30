@@ -5,7 +5,7 @@ const { GoogleGenAI } = require('@google/genai');
 const axios = require('axios');
 const fs = require('fs');
 const ChatHistory = require('../models/ChatHistory');
-
+const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -98,8 +98,7 @@ const handleChatRequest = async (req, res) => {
       image_urls: imageUrls,
       thread_id: userId // Use MongoDB ObjectId as thread_id
     };
-
-    const fastApiResponse = await axios.post('http://localhost:8000/ask', fastApiPayload);
+    const fastApiResponse = await axios.post(`${FASTAPI_URL}/ask`, fastApiPayload);
     const agentResponseText = fastApiResponse.data.final_advice;
     const stateDetails = fastApiResponse.data.state_details;
 
