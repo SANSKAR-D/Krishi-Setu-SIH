@@ -8,8 +8,8 @@ langchain_tavily
 python-dotenv
 pinecone-client
 langchain-pinecone
-langchain-huggingface
-sentence-transformers
+fastembed
+langchain-community
 langgraph-checkpoint-postgres
 psycopg-pool
 psycopg[binary]

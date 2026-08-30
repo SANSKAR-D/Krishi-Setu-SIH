@@ -129,7 +129,7 @@ def dl_node(state: AgentState):
 def rag_node(state: AgentState):
     print("--- RAG NODE (Pinecone) ---")
     from langchain_pinecone import PineconeVectorStore
-    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
     
     index_name = os.getenv("PINECONE_INDEX_NAME")
     if not index_name:
@@ -143,7 +143,7 @@ def rag_node(state: AgentState):
         query = f"Information about crop disease: {json.dumps(dl_result)}"
         
     try:
-        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        embeddings = FastEmbedEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         db = PineconeVectorStore(index_name=index_name, embedding=embeddings)
         
         results = db.similarity_search(query, k=4)
