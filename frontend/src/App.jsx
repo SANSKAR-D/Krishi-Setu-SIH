@@ -2,7 +2,6 @@ import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar/Navbar'
 import Sidebar from './components/Sidebar/Sidebar'
 import Dashboard from './components/Dashboard/Dashboard'
-import SoilHealth from './components/SoilHealth/SoilHealth'
 import ExpertChat from './components/ExpertChat/ExpertChat'
 import CropCalendar from './components/CropCalender/CropCalender'
 import Login from './pages/Login'
@@ -17,7 +16,6 @@ const DashboardLayout = () => (
       <Navbar />
       <Routes>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/soil-health" element={<SoilHealth />} />
         <Route path="/crop-calendar" element={<CropCalendar />} />
         <Route path="/expert-chat" element={<ExpertChat />} />
         <Route path="/gis" element={<GISMap />} />

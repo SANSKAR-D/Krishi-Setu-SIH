@@ -28,10 +28,6 @@ const Sidebar = () => {
           <Home className="w-5 h-5" />
           <span className="label-sm">Home</span>
         </NavLink>
-        <NavLink to="/soil-health" className={navClass}>
-          <Sprout className="w-5 h-5" />
-          <span className="label-sm">Soil Health</span>
-        </NavLink>
         <NavLink to="/crop-calendar" className={navClass}>
           <Calendar className="w-5 h-5" />
           <span className="label-sm">Crop Calendar</span>
@@ -44,20 +40,6 @@ const Sidebar = () => {
           <Map className="w-5 h-5" />
           <span className="label-sm">GIS Map</span>
         </NavLink>
-      </div>
-      
-      {/* CTA & Footer */}
-      <div className="mt-auto flex flex-col gap-sm">
-        <div className="flex flex-col gap-xs mt-sm pt-sm border-t border-outline-variant">
-          <a className="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer" href="#">
-            <HelpCircle className="w-5 h-5" />
-            <span className="label-sm">Support</span>
-          </a>
-          <a className="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer" href="#">
-            <Settings className="w-5 h-5" />
-            <span className="label-sm">Settings</span>
-          </a>
-        </div>
       </div>
     </nav>
   );

@@ -35,7 +35,7 @@ async def ask_agent(request: AgentRequest):
             "user_id": request.thread_id
         }
         
-        # Remove None values to keep state clean (optional, but good practice)
+        # Remove None values to keep state clean 
         initial_state = {k: v for k, v in initial_state.items() if v is not None}
         
         config = {"configurable": {"thread_id": request.thread_id}}

@@ -59,7 +59,6 @@ markets_cache = TTLCache()
 WEATHER_TTL = 3600       # 1 hour
 SOIL_TTL = 86400          # 24 hours (soil data rarely changes)
 ELEVATION_TTL = 604800    # 7 days (elevation never changes)
-MARKETS_TTL = 86400       # 24 hours
 
 
 def _cache_key(lat: float, lon: float) -> str:
@@ -577,5 +576,5 @@ def delete_farm(farm_id: int, db: Session = Depends(get_db)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8001, reload=True)
     # Reload triggered

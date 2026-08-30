@@ -162,9 +162,30 @@ const ExpertChat = () => {
           </div>
 
           {messages.length === 0 && (
-            <div className="text-center text-on-surface-variant mt-10">
-              <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Ask AgriExpert AI anything about crops, soil, or weather.</p>
+            <div className="flex flex-col items-center justify-center mt-10 w-full max-w-2xl mx-auto px-4">
+              <div className="w-16 h-16 bg-primary-container rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                <Bot className="w-8 h-8 text-on-primary-container" />
+              </div>
+              <h2 className="text-2xl font-semibold text-on-surface mb-2">Welcome to AgriExpert AI</h2>
+              <p className="text-on-surface-variant text-center mb-8 w-full max-w-[500px]">
+                I can help you analyze soil conditions, diagnose crop diseases, predict weather impacts, and plan your farming schedule.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                {[
+                  "What is the best fertilizer for wheat in loamy soil?",
+                  "Analyze this image of my tomato plant leaves for diseases.",
+                  "How will next week's rainfall affect my sowing schedule?"
+                ].map((suggestion, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setMessage(suggestion)}
+                    className="p-4 bg-surface border border-outline-variant hover:border-primary hover:bg-surface-container-low rounded-xl text-left transition-colors text-sm text-on-surface shadow-sm cursor-pointer"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

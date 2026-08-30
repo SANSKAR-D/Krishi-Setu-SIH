@@ -19,7 +19,7 @@ import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const GIS_URL = import.meta.env.VITE_GIS_URL || 'http://localhost:8001';
 
 // ─── Direct API URLs (fallback when backend is unavailable) ───
 const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast';
@@ -266,7 +266,7 @@ const MapDashboard = () => {
   // ─────────── Fetch saved farms ───────────
   const fetchSavedFarms = useCallback(async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/farms`);
+      const res = await axios.get(`${GIS_URL}/api/farms`);
       if (res.data.status === 'success') {
         setSavedFarms(res.data.data);
       }
@@ -288,7 +288,7 @@ const MapDashboard = () => {
 
     // Attempt 1: Backend aggregator
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/environment`, {
+      const res = await axios.get(`${GIS_URL}/api/environment`, {
         params: { lat, lng },
         timeout: 60000,
       });
@@ -521,7 +521,7 @@ const MapDashboard = () => {
 
     setSaving(true);
     try {
-      await axios.post(`${BACKEND_URL}/api/farms`, {
+      await axios.post(`${GIS_URL}/api/farms`, {
         name: finalName,
         geojson: feature,
       });
