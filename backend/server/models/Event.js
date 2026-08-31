@@ -26,18 +26,11 @@ const eventSchema = new mongoose.Schema(
       required: true,
     },
 
-    // kaunsi crop se related hai
-    crop: {
-      type: String,
+    // reference to the crop plan (farm)
+    cropPlanId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CropPlan",
       required: true,
-      trim: true,
-    },
-
-    // field/location, jaise "North Field", "Greenhouse B", "East Plot"
-    field: {
-      type: String,
-      required: true,
-      trim: true,
     },
 
     // event ka current status
@@ -46,12 +39,6 @@ const eventSchema = new mongoose.Schema(
       required: true,
       enum: ["upcoming", "completed", "overdue"],
       default: "upcoming",
-    },
-
-    // ye event kis farmer ka hai (auth nahi hai abhi, isliye simple String/ID rakha hai)
-    farmerId: {
-      type: String,
-      required: true,
     },
 
     // agar event fertilizer se related hai
@@ -95,10 +82,16 @@ const eventSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+
+    // harvest ke time yield quantity
+    actualYield: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true, // createdAt aur updatedAt apne aap add ho jayenge
   }
 );
 
-module.exports = mongoose.model("Event", eventSchema);
+module.exports = mongoose.model("Event", eventSchema);
