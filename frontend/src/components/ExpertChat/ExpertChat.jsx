@@ -9,8 +9,17 @@ import {
   Send,
   X,
   Loader2,
-  Trash2
+  Trash2,
+  Mic,
+  MicOff
 } from "lucide-react";
+
+// ─── Voice recording states ───
+const VOICE_STATE = {
+  IDLE: "idle",
+  RECORDING: "recording",
+  TRANSCRIBING: "transcribing",
+};
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -37,6 +46,12 @@ const ExpertChat = () => {
   const [previewUrls, setPreviewUrls] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // ─── Voice state ───
+  const [voiceState, setVoiceState] = useState(VOICE_STATE.IDLE);
+  const [voiceError, setVoiceError] = useState("");
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -59,6 +74,104 @@ const ExpertChat = () => {
   const removeImage = (index) => {
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
     setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ─── Voice recording logic ───
+  const startRecording = async () => {
+    setVoiceError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+
+      // Prefer webm; fall back to whatever the browser supports
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "";
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        // Stop all tracks to release mic
+        stream.getTracks().forEach((t) => t.stop());
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mimeType || "audio/webm",
+        });
+
+        await transcribeBlob(audioBlob, mimeType || "audio/webm");
+      };
+
+      recorder.start();
+      setVoiceState(VOICE_STATE.RECORDING);
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      setVoiceError("Microphone access denied. Please allow mic permissions.");
+      setVoiceState(VOICE_STATE.IDLE);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      setVoiceState(VOICE_STATE.TRANSCRIBING);
+    }
+  };
+
+  const transcribeBlob = async (audioBlob, mimeType) => {
+    try {
+      const formData = new FormData();
+      // Use proper extension so Whisper recognises the format
+      const ext = mimeType.includes("mp4") ? "mp4" : mimeType.includes("ogg") ? "ogg" : "webm";
+      formData.append("audio", audioBlob, `recording.${ext}`);
+
+      const token = localStorage.getItem('krishiSetuToken');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await axios.post(
+        `${API_URL}/api/chat/transcribe`,
+        formData,
+        { headers }
+      );
+
+      if (response.data.success && response.data.text) {
+        setMessage((prev) => (prev ? prev + " " + response.data.text : response.data.text));
+      }
+    } catch (err) {
+      console.error("Transcription error:", err);
+      setVoiceError("Transcription failed. Please try again.");
+    } finally {
+      setVoiceState(VOICE_STATE.IDLE);
+    }
+  };
+
+  const handleVoiceButton = () => {
+    if (voiceState === VOICE_STATE.IDLE) {
+      startRecording();
+    } else if (voiceState === VOICE_STATE.RECORDING) {
+      stopRecording();
+    }
+    // TRANSCRIBING: button is disabled, nothing happens
+  };
+
+  // ─── Voice button appearance ───
+  const voiceButtonClass = () => {
+    const base =
+      "p-2 rounded-full transition-all duration-200 flex items-center justify-center flex-shrink-0 ";
+    if (voiceState === VOICE_STATE.RECORDING)
+      return base + "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/40";
+    if (voiceState === VOICE_STATE.TRANSCRIBING)
+      return base + "bg-surface-container text-on-surface-variant opacity-60 cursor-not-allowed";
+    return base + "text-on-surface-variant hover:text-primary hover:bg-surface-container-low";
   };
 
   const handleSend = async () => {
@@ -220,30 +333,65 @@ const ExpertChat = () => {
              </div>
           )}
 
-          <div className="flex items-center w-full">
-            <label className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low cursor-pointer">
+          <div className="flex items-center w-full gap-1">
+            <label className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low cursor-pointer flex-shrink-0">
               <Camera className="w-5 h-5" />
               <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
             </label>
             
+            {/* Voice mic button */}
+            <button
+              id="voice-input-btn"
+              type="button"
+              onClick={handleVoiceButton}
+              disabled={voiceState === VOICE_STATE.TRANSCRIBING || isLoading}
+              className={voiceButtonClass()}
+              title={
+                voiceState === VOICE_STATE.IDLE
+                  ? "Click to speak"
+                  : voiceState === VOICE_STATE.RECORDING
+                  ? "Click to stop recording"
+                  : "Transcribing..."
+              }
+            >
+              {voiceState === VOICE_STATE.TRANSCRIBING ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : voiceState === VOICE_STATE.RECORDING ? (
+                <MicOff className="w-5 h-5" />
+              ) : (
+                <Mic className="w-5 h-5" />
+              )}
+            </button>
+
             <input
               className="flex-1 bg-transparent border-none focus:ring-0 body-md text-on-surface placeholder:text-on-surface-variant/60 py-2 px-2"
-              placeholder="Ask about crops, soil, or weather..."
+              placeholder={
+                voiceState === VOICE_STATE.RECORDING
+                  ? "🔴 Recording... tap mic to stop"
+                  : voiceState === VOICE_STATE.TRANSCRIBING
+                  ? "Transcribing voice..."
+                  : "Ask about crops, soil, or weather..."
+              }
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              disabled={isLoading}
+              disabled={isLoading || voiceState !== VOICE_STATE.IDLE}
             />
 
             <button
-              className="p-2 bg-primary text-on-primary rounded-xl hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center disabled:opacity-50"
+              className="p-2 bg-primary text-on-primary rounded-xl hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center disabled:opacity-50 flex-shrink-0"
               onClick={handleSend}
-              disabled={isLoading || (!message.trim() && selectedImages.length === 0)}
+              disabled={isLoading || (!message.trim() && selectedImages.length === 0) || voiceState !== VOICE_STATE.IDLE}
             >
               <Send className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Voice error message */}
+          {voiceError && (
+            <p className="text-xs text-red-500 mt-1 px-2">{voiceError}</p>
+          )}
         </div>
         <div className="text-center mt-2 max-w-[800px] mx-auto">
           <span className="label-sm text-on-surface-variant/60 text-xs">
