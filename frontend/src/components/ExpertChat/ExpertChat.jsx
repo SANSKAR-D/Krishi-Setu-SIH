@@ -64,31 +64,36 @@ const ExpertChat = () => {
   const handleSend = async () => {
     if (!message.trim() && selectedImages.length === 0) return;
 
-    // Build Form Data
-    const formData = new FormData();
-    if (message.trim()) formData.append("message", message);
-    if (selectedImages.length > 0) {
-      selectedImages.forEach((img) => formData.append("image", img));
-    }
+    const sendRequest = async (latitude = null, longitude = null) => {
+      // Build Form Data
+      const formData = new FormData();
+      if (message.trim()) formData.append("message", message);
+      if (selectedImages.length > 0) {
+        selectedImages.forEach((img) => formData.append("image", img));
+      }
+      if (latitude && longitude) {
+        formData.append("latitude", latitude);
+        formData.append("longitude", longitude);
+      }
 
-    // Add user message to UI
-    const newUserMsg = {
-      role: "user",
-      text: message,
-      image: previewUrls.length > 0 ? [...previewUrls] : null,
-    };
-    setMessages((prev) => [...prev, newUserMsg]);
+      // Add user message to UI
+      const newUserMsg = {
+        role: "user",
+        text: message,
+        image: previewUrls.length > 0 ? [...previewUrls] : null,
+      };
+      setMessages((prev) => [...prev, newUserMsg]);
 
-    // Reset inputs
-    setMessage("");
-    setSelectedImages([]);
-    setPreviewUrls([]);
-    setIsLoading(true);
+      // Reset inputs
+      setMessage("");
+      setSelectedImages([]);
+      setPreviewUrls([]);
+      setIsLoading(true);
 
-    try {
-      const response = await axios.post(`${API_URL}/api/chat`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      try {
+        const response = await axios.post(`${API_URL}/api/chat`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
         const aiResponse = response.data.response;
         setMessages((prev) => [...prev, { role: "ai", text: aiResponse }]);
