@@ -82,6 +82,10 @@ const getDashboardAdvisories = async (req, res) => {
     const lon = req.query.lon ? parseFloat(req.query.lon) : 77.2090;
     const { soilMetrics } = await getSoilAndWeatherData(lat, lon);
 
+    if (req.query.temp != null) soilMetrics.temperature = parseFloat(req.query.temp);
+    if (req.query.moisture != null) soilMetrics.moisture = parseInt(req.query.moisture);
+    if (req.query.condition) soilMetrics.weather_condition = req.query.condition;
+
     let aiAdvisories = [];
     const cacheKey = `${lat.toFixed(2)}_${lon.toFixed(2)}`;
     const now = Date.now();
