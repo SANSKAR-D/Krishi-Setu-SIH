@@ -2,10 +2,10 @@ const mongoose = require("mongoose");
 
 const cropPlanSchema = new mongoose.Schema(
   {
-    farmerId: {
-      type: String,
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
-      trim: true,
     },
     farmName: {
       type: String,
@@ -49,6 +49,6 @@ const cropPlanSchema = new mongoose.Schema(
 );
 
 // Prevent duplicate plans for the exact same farm, crop, season, and year
-cropPlanSchema.index({ farmerId: 1, farmName: 1, cropName: 1, season: 1, year: 1 }, { unique: true });
+cropPlanSchema.index({ userId: 1, farmName: 1, cropName: 1, season: 1, year: 1 }, { unique: true });
 
 module.exports = mongoose.model("CropPlan", cropPlanSchema);

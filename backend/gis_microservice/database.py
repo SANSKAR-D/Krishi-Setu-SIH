@@ -23,6 +23,7 @@ class Farm(Base):
     __tablename__ = "farms"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
     created_at = Column(
         DateTime(timezone=True),

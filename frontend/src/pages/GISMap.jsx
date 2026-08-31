@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import mapboxgl from 'mapbox-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
@@ -246,6 +247,7 @@ function getWeatherDescription(code) {
 }
 
 const MapDashboard = () => {
+  const { user } = useContext(AuthContext);
   const mapContainer = useRef(null);
   const map = useRef(null);
   const draw = useRef(null);
@@ -263,17 +265,21 @@ const MapDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const lastCoords = useRef(null);
 
-  // ─────────── Fetch saved farms ───────────
+  // ─────────── Fetch saved farms (only for the logged-in user) ───────────
   const fetchSavedFarms = useCallback(async () => {
+    const userId = user?.id ?? user?._id;
+    if (!userId) return;
     try {
-      const res = await axios.get(`${GIS_URL}/api/farms`);
+      const res = await axios.get(`${GIS_URL}/api/farms`, {
+        params: { user_id: userId },
+      });
       if (res.data.status === 'success') {
         setSavedFarms(res.data.data);
       }
     } catch (err) {
       console.warn('Could not fetch saved farms:', err.message);
     }
-  }, []);
+  }, [user]);  // re-fetch when logged-in user changes
 
   useEffect(() => {
     fetchSavedFarms();
@@ -530,9 +536,16 @@ const MapDashboard = () => {
       count++;
     }
 
+    const userId = user?.id ?? user?._id;
+    if (!userId) {
+      setSaveStatus({ type: 'error', text: `Debug: user object is missing ID: ${JSON.stringify(user)}` });
+      return;
+    }
+
     setSaving(true);
     try {
       await axios.post(`${GIS_URL}/api/farms`, {
+        user_id: userId,
         name: finalName,
         geojson: feature,
       });
