@@ -199,10 +199,26 @@ def agent_node(state: AgentState):
         
     # Trim chat history to the last 20 messages to save context limits
     recent_messages = state["messages"][-20:]
+    
+    # CRITICAL FIX: Gemini requires the conversation to start with a User (Human) message
+    # and strictly alternate. If our slice cut an AIMessage off from its HumanMessage, 
+    # or orphaned a ToolMessage, the langchain google adapter raises an instant ValueError.
+    # We drop messages from the front until we hit a HumanMessage.
+    while recent_messages and getattr(recent_messages[0], "type", "") != "human":
+        recent_messages.pop(0)
+        
     messages = [SystemMessage(content=sys_msg)] + recent_messages
     
-    response = llm_with_tools.invoke(messages)
-    print(f"Agent Node (LLM Call) completed in {time.time() - start_t:.2f}s")
+    try:
+        response = llm_with_tools.invoke(messages)
+        print(f"Agent Node (LLM Call) completed in {time.time() - start_t:.2f}s")
+    except Exception as e:
+        print(f"Agent Node (LLM Call) FAILED instantly: {repr(e)}")
+        # Fallback to a single HumanMessage if history was too mangled
+        print("Falling back to single query without history...")
+        fallback_msg = [SystemMessage(content=sys_msg), HumanMessage(content=state.get("user_query", "Error processing request."))]
+        response = llm_with_tools.invoke(fallback_msg)
+        
     return {"messages": [response]}
 
 # ==========================================

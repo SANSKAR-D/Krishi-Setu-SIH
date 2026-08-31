@@ -5,7 +5,7 @@ const { GoogleGenAI } = require('@google/genai');
 const axios = require('axios');
 const fs = require('fs');
 const ChatHistory = require('../models/ChatHistory');
-const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -116,6 +116,7 @@ const handleChatRequest = async (req, res) => {
     const lat = req.body.lat ? parseFloat(req.body.lat) : null;
     const lon = req.body.lon ? parseFloat(req.body.lon) : null;
     const imageFiles = req.files && req.files['image'] ? req.files['image'] : [];
+    console.log("📸 Received image files count:", imageFiles.length);
     
     let imageUrls = null;
     let finalEnglishQuery = '';
@@ -135,7 +136,9 @@ const handleChatRequest = async (req, res) => {
 
     // 1. Upload images to Cloudinary
     if (imageFiles.length > 0) {
+      console.log("⬆️ Uploading images to Cloudinary...");
       imageUrls = await Promise.all(imageFiles.map(file => uploadToCloudinary(file.buffer)));
+      console.log("✅ Cloudinary URLs generated:", imageUrls);
     }
 
     // 2. Translate user text to English
