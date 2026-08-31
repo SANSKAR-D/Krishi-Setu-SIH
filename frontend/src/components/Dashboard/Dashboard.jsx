@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [soilData, setSoilData] = useState({});
   const [advisories, setAdvisories] = useState([]);
   const [weather, setWeather] = useState([]);
+  const [currentWeather, setCurrentWeather] = useState({});
 
   const [soilLoading, setSoilLoading] = useState(true);
   const [advisoriesLoading, setAdvisoriesLoading] = useState(true);
@@ -51,6 +52,7 @@ const Dashboard = () => {
     try {
       const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&current=temperature_2m,weathercode,soil_moisture_0_to_7cm&forecast_days=7&timezone=auto`;
       const res = await axios.get(meteoUrl);
+      const current = res.data.current;
       const daily = res.data.daily;
       const getWeatherString = (code) => {
         if (code === null || code === undefined) return "Clear";
@@ -61,6 +63,16 @@ const Dashboard = () => {
         if (code <= 99) return "Stormy";
         return "Clear";
       };
+
+      let temp = null, moisture = null, condition = null;
+      if (current) {
+        if (current.temperature_2m != null) temp = Math.round(current.temperature_2m);
+        condition = getWeatherString(current.weathercode);
+        if (current.soil_moisture_0_to_7cm != null) {
+          moisture = Math.round(current.soil_moisture_0_to_7cm * 100);
+        }
+      }
+      setCurrentWeather({ temperature: temp, moisture, condition });
       
       if (daily && daily.time) {
         const wData = daily.time.slice(0, 7).map((date, index) => ({
@@ -72,9 +84,12 @@ const Dashboard = () => {
         }));
         setWeather(wData);
       }
+      return { temperature: temp, moisture, condition };
     } catch (err) {
       console.error("Frontend weather fetch error:", err);
       setWeather([]);
+      setCurrentWeather({});
+      return {};
     } finally {
       setWeatherLoading(false);
     }
@@ -92,10 +107,15 @@ const Dashboard = () => {
     }
   };
 
-  const fetchAdvisories = async (lat, lon) => {
+  const fetchAdvisories = async (lat, lon, cw) => {
     setAdvisoriesLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/dashboard/advisories?lat=${lat}&lon=${lon}`);
+      let query = `?lat=${lat}&lon=${lon}`;
+      if (cw && cw.temperature != null) query += `&temp=${cw.temperature}`;
+      if (cw && cw.moisture != null) query += `&moisture=${cw.moisture}`;
+      if (cw && cw.condition) query += `&condition=${cw.condition}`;
+
+      const response = await axios.get(`${API_URL}/api/dashboard/advisories${query}`);
       setAdvisories(response.data.data.ai_advisories || []);
     } catch (err) {
       console.error('Error fetching advisories:', err);
@@ -104,16 +124,16 @@ const Dashboard = () => {
     }
   };
 
-  const fetchLocationData = (lat, lon, label) => {
+  const fetchLocationData = async (lat, lon, label) => {
     const targetLat = lat ?? 28.6139;
     const targetLon = lon ?? 77.209;
     
     if (label) setLocationLabel(label);
     setActiveCoords({ lat: targetLat, lon: targetLon });
 
-    fetchWeather(targetLat, targetLon);
     fetchSoilData(targetLat, targetLon);
-    fetchAdvisories(targetLat, targetLon);
+    const cw = await fetchWeather(targetLat, targetLon);
+    fetchAdvisories(targetLat, targetLon, cw);
   };
 
   const fetchFarms = async () => {
@@ -279,10 +299,10 @@ const Dashboard = () => {
             ))
           ) : (
             [
-              { label: 'Soil Moisture', value: soil.moisture != null ? `${soil.moisture}%` : '--', icon: <Droplets className="w-6 h-6" />, color: 'text-blue-500 bg-blue-50', hint: 'Topsoil (0–7cm)' },
+              { label: 'Soil Moisture', value: currentWeather.moisture != null ? `${currentWeather.moisture}%` : '--', icon: <Droplets className="w-6 h-6" />, color: 'text-blue-500 bg-blue-50', hint: 'Topsoil (0–7cm)' },
               { label: 'pH Level', value: soil.ph != null ? soil.ph : '--', icon: <FlaskConical className="w-6 h-6" />, color: 'text-purple-500 bg-purple-50', hint: 'Ideal: 6.0–7.5' },
               { label: 'Nitrogen', value: soil.nitrogen ?? '--', icon: <Sprout className="w-6 h-6" />, color: 'text-green-600 bg-green-50', hint: 'Topsoil level' },
-              { label: 'Air Temp', value: soil.temperature != null ? `${soil.temperature}°C` : '--', icon: <Thermometer className="w-6 h-6" />, color: 'text-orange-500 bg-orange-50', hint: soil.weather_condition ?? 'Current' },
+              { label: 'Air Temp', value: currentWeather.temperature != null ? `${currentWeather.temperature}°C` : '--', icon: <Thermometer className="w-6 h-6" />, color: 'text-orange-500 bg-orange-50', hint: currentWeather.condition ?? 'Current' },
             ].map(({ label, value, icon, color, hint }) => (
               <div key={label} className="bg-surface rounded-2xl border border-outline-variant/30 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
                 <div className={`p-3 rounded-2xl shrink-0 ${color} group-hover:scale-110 transition-transform`}>{icon}</div>
