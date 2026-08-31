@@ -12,6 +12,8 @@ import {
   Trash2
 } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const ExpertChat = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
@@ -20,7 +22,7 @@ const ExpertChat = () => {
     // Fetch chat history from MongoDB on mount
     const fetchHistory = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/chat/history");
+        const response = await axios.get(`${API_URL}/api/chat/history`);
         if (response.data.success && response.data.messages) {
           setMessages(response.data.messages);
         }
@@ -84,7 +86,7 @@ const ExpertChat = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/chat", formData, {
+      const response = await axios.post(`${API_URL}/api/chat`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

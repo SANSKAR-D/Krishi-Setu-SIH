@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AlertTriangle, Brain, Sun, CloudSun, CloudRain, Cloud, Loader2, Sparkles, Thermometer } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -9,7 +11,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/dashboard");
+        const response = await axios.get(`${API_URL}/api/dashboard`);
         setData(response.data.data);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);

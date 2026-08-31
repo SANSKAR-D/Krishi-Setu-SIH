@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // ─── Constants ────────────────────────────────────────────────
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -124,7 +126,7 @@ const CropCalendar = () => {
       if (!userId) return;
       setLoadingPlans(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/crop-plans?userId=${userId}`);
+        const res = await fetch(`${API_URL}/api/crop-plans?userId=${userId}`);
         const data = await res.json();
         if (data.success && data.data.length > 0) {
           setCropPlans(data.data);
@@ -166,7 +168,7 @@ const CropCalendar = () => {
     setFetchError("");
     try {
       // Fetch ALL events for this farmer to populate the upcoming list correctly
-      const res  = await fetch(`http://localhost:5000/api/crop-plans/events?userId=${userId}`);
+      const res  = await fetch(`${API_URL}/api/crop-plans/events?userId=${userId}`);
       const data = await res.json();
       if (data.success) setEvents(data.data || []);
       else setFetchError(data.message || data.error || "Could not fetch events");
@@ -203,7 +205,7 @@ const CropCalendar = () => {
         longitude: selectedFarmObj?.longitude || selectedFarmObj?.lng || 77.2090
       };
       
-      const res = await fetch("http://localhost:5000/api/crop-plans", {
+      const res = await fetch(`${API_URL}/api/crop-plans`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json"
@@ -255,7 +257,7 @@ const CropCalendar = () => {
 
       const payload = { ...formData, cropPlanId: currentPlan._id };
 
-      const res  = await fetch("http://localhost:5000/api/crop-plans/events", {
+      const res  = await fetch(`${API_URL}/api/crop-plans/events`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json"
