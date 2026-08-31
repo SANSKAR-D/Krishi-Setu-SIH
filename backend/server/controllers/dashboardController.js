@@ -14,44 +14,8 @@ const getSoilAndWeatherData = async (lat, lon) => {
 
   let airTemp = null; 
 
-  // Open-Meteo
-  try {
-    const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&current=temperature_2m,weathercode,soil_moisture_0_to_7cm&forecast_days=7&timezone=auto`;
-    const meteoRes = await axios.get(meteoUrl, { timeout: 10000 });
-    
-    const current = meteoRes.data.current;
-    const daily = meteoRes.data.daily;
-
-    const getWeatherString = (code) => {
-      if (code === null || code === undefined) return "Clear";
-      if (code <= 3) return "Sunny";
-      if (code <= 48) return "Cloudy";
-      if (code <= 67) return "Rainy";
-      if (code <= 77) return "Snow";
-      if (code <= 99) return "Stormy";
-      return "Clear";
-    };
-
-    weatherCondition = getWeatherString(current.weathercode);
-    airTemp = Math.round(current.temperature_2m);
-    
-    if (current.soil_moisture_0_to_7cm !== undefined && current.soil_moisture_0_to_7cm !== null) {
-      soilMoisture = Math.round(current.soil_moisture_0_to_7cm * 100);
-    }
-
-    if (daily && daily.time) {
-      weatherData = daily.time.slice(0, 7).map((date, index) => ({
-        date: date,
-        temp_max: Math.round(daily.temperature_2m_max[index]),
-        temp_min: Math.round(daily.temperature_2m_min[index]),
-        temp: Math.round((daily.temperature_2m_max[index] + daily.temperature_2m_min[index]) / 2),
-        condition: getWeatherString(daily.weathercode[index])
-      }));
-    }
-  } catch (err) {
-    console.error("Open-Meteo fetch error:", err.message);
-    weatherData = []; // ensure array not null
-  }
+  // Weather is now fetched exclusively on the frontend to avoid Render IP rate limits (429).
+  // Soil moisture fallback if needed could go here, but we will rely strictly on SoilGrids.
 
   // SoilGrids
   let soilPh = null; 
@@ -59,7 +23,7 @@ const getSoilAndWeatherData = async (lat, lon) => {
   
   try {
     const isricUrl = `https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${lon}&lat=${lat}&property=phh2o&property=nitrogen&depth=0-5cm&value=mean`;
-    const isricRes = await axios.get(isricUrl, { timeout: 8000 }); // added timeout for chat responsiveness
+    const isricRes = await axios.get(isricUrl, { timeout: 3000 }); // reduced timeout to 3s for Render
     
     const layers = isricRes.data.properties.layers;
     layers.forEach(layer => {

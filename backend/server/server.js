@@ -17,6 +17,8 @@ app.use(cors());
 app.use(express.json());
 
 const { globalApiLimiter } = require("./middleware/rateLimiter");
+// Trust the proxy (Render) so rate limiting works correctly
+app.set('trust proxy', 1);
 // Apply global rate limiter to all /api routes
 app.use("/api", globalApiLimiter);
 
