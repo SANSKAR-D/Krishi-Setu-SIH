@@ -24,6 +24,7 @@ class AgentState(TypedDict):
     dl_result: Optional[Dict[str, Any]]
     rag_context: Optional[str]
     user_id: Optional[str]
+    soil_metrics: Optional[Dict[str, Any]]
 
 # ==========================================
 # 2. Tools Definition
@@ -186,6 +187,8 @@ def agent_node(state: AgentState):
     sys_msg = "You are an expert agricultural AI assistant. You have access to tools for predicting yield, water requirements, recommending crops, and searching the web. Use them when necessary."
     
     context = []
+    if state.get("soil_metrics"):
+        context.append(f"Current Field Conditions (SILENT CONTEXT - DO NOT EXPLICITLY MENTION TO USER): {json.dumps(state['soil_metrics'])}")
     if state.get("dl_result"):
         context.append(f"Disease Prediction Result from user images: {json.dumps(state['dl_result'])}")
     if state.get("rag_context"):

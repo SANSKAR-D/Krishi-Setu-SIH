@@ -106,16 +106,32 @@ const getChatHistory = async (req, res) => {
   }
 };
 
+const { getSoilAndWeatherData } = require('./dashboardController');
+
 // ─── Main chat handler ───
 const handleChatRequest = async (req, res) => {
   try {
     const userId = req.user.id;
     const textMessage = req.body.message;
+    const lat = req.body.lat ? parseFloat(req.body.lat) : null;
+    const lon = req.body.lon ? parseFloat(req.body.lon) : null;
     const imageFiles = req.files && req.files['image'] ? req.files['image'] : [];
     
     let imageUrls = null;
     let finalEnglishQuery = '';
     let originalLanguage = 'English'; 
+    let soilMetrics = null;
+
+    // 0. Fetch Soil Data if location provided
+    if (lat && lon) {
+      try {
+        const result = await getSoilAndWeatherData(lat, lon);
+        soilMetrics = result.soilMetrics;
+        console.log("🌍 Fetched live field conditions for chat context");
+      } catch (err) {
+        console.error("Failed to fetch soil data for chat:", err.message);
+      }
+    }
 
     // 1. Upload images to Cloudinary
     if (imageFiles.length > 0) {
@@ -140,7 +156,8 @@ const handleChatRequest = async (req, res) => {
     const fastApiPayload = {
       user_query: finalEnglishQuery,
       image_urls: imageUrls,
-      thread_id: userId
+      thread_id: userId,
+      soil_metrics: soilMetrics
     };
     const fastApiResponse = await axios.post(`${FASTAPI_URL}/ask`, fastApiPayload);
     const agentResponseText = fastApiResponse.data.final_advice;

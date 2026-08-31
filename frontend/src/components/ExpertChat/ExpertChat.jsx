@@ -90,13 +90,23 @@ const ExpertChat = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const aiResponse = response.data.response;
-      setMessages((prev) => [...prev, { role: "ai", text: aiResponse }]);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setMessages((prev) => [...prev, { role: "ai", text: "Sorry, there was an error processing your request." }]);
-    } finally {
-      setIsLoading(false);
+        const aiResponse = response.data.response;
+        setMessages((prev) => [...prev, { role: "ai", text: aiResponse }]);
+      } catch (error) {
+        console.error("Error sending message:", error);
+        setMessages((prev) => [...prev, { role: "ai", text: "Sorry, there was an error processing your request." }]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => sendRequest(position.coords.latitude, position.coords.longitude),
+        () => sendRequest() // fallback without location
+      );
+    } else {
+      sendRequest();
     }
   };
 
