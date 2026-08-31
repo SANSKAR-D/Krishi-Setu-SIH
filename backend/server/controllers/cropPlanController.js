@@ -7,17 +7,17 @@ const Event = require("../models/Event");
 // --------------------------------------------------
 const addCropPlan = async (req, res) => {
   try {
-    const { farmerId, farmName, cropName, season, year, area, actualYield, latitude, longitude } = req.body;
+    const { userId, farmName, cropName, season, year, area, actualYield, latitude, longitude } = req.body;
 
-    if (!farmerId || !farmName || !cropName || !season || !year || latitude === undefined || longitude === undefined) {
+    if (!userId || !farmName || !cropName || !season || !year || latitude === undefined || longitude === undefined) {
       return res.status(400).json({
         success: false,
-        message: "farmerId, farmName, cropName, season, year, latitude, and longitude are required.",
+        message: "userId, farmName, cropName, season, year, latitude, and longitude are required.",
       });
     }
 
     // Check if it already exists for the same season and year
-    const existingPlan = await CropPlan.findOne({ farmerId, farmName, cropName, season, year });
+    const existingPlan = await CropPlan.findOne({ userId, farmName, cropName, season, year });
     if (existingPlan) {
       return res.status(200).json({
         success: true,
@@ -27,7 +27,7 @@ const addCropPlan = async (req, res) => {
     }
 
     const newPlan = await CropPlan.create({
-      farmerId,
+      userId,
       farmName,
       cropName,
       season,
@@ -58,8 +58,8 @@ const addCropPlan = async (req, res) => {
 // --------------------------------------------------
 const getCropPlans = async (req, res) => {
   try {
-    const { farmerId } = req.query;
-    const filter = farmerId ? { farmerId } : {};
+    const { userId } = req.query;
+    const filter = userId ? { userId } : {};
 
     const plans = await CropPlan.find(filter).sort({ createdAt: -1 });
 
@@ -146,14 +146,14 @@ const addEvent = async (req, res) => {
 // --------------------------------------------------
 const getEvents = async (req, res) => {
   try {
-    const { cropPlanId, farmerId } = req.query;
+    const { cropPlanId, userId } = req.query;
     
     let filter = {};
     if (cropPlanId) {
       filter = { cropPlanId };
-    } else if (farmerId) {
+    } else if (userId) {
       // Fetch all events for all plans belonging to this farmer
-      const userPlans = await CropPlan.find({ farmerId }).select('_id');
+      const userPlans = await CropPlan.find({ userId }).select('_id');
       const planIds = userPlans.map(plan => plan._id);
       filter = { cropPlanId: { $in: planIds } };
     }

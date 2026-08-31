@@ -13,6 +13,7 @@ import {
   MapPin,
   FilePlus,
 } from "lucide-react";
+import { AuthContext } from "../../context/AuthContext";
 
 // ─── Constants ────────────────────────────────────────────────
 
@@ -81,9 +82,10 @@ const SummaryCard = ({ icon: Icon, label, value, accentColor }) => (
 // ─── Main Component ───────────────────────────────────────────
 
 const CropCalendar = () => {
+  const { user } = React.useContext(AuthContext);
+  const userId = user?.id ?? user?._id;
 
   // Global Context State
-  const farmerId = "F123";
   const [cropPlans, setCropPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
@@ -119,9 +121,10 @@ const CropCalendar = () => {
   useEffect(() => {
     // 1. Fetch Crop Plans
     const initData = async () => {
+      if (!userId) return;
       setLoadingPlans(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/crop-plans?farmerId=${farmerId}`);
+        const res = await fetch(`http://localhost:5000/api/crop-plans?userId=${userId}`);
         const data = await res.json();
         if (data.success && data.data.length > 0) {
           setCropPlans(data.data);
@@ -141,7 +144,7 @@ const CropCalendar = () => {
       // 2. Fetch GIS Farms for Wizard dropdown
       try {
         const gisUrl = import.meta.env.VITE_GIS_URL || "http://localhost:8001";
-        const res = await fetch(`${gisUrl}/api/farms`);
+        const res = await fetch(`${gisUrl}/api/farms?user_id=${userId}`);
         const data = await res.json();
         if (data.status === "success") setFarms(data.data || []);
       } catch (e) {
@@ -149,7 +152,7 @@ const CropCalendar = () => {
       }
     };
     initData();
-  }, []);
+  }, [userId]);
 
   // Fetch events whenever we are NOT in the wizard (meaning we have an active context)
   useEffect(() => {
@@ -163,7 +166,7 @@ const CropCalendar = () => {
     setFetchError("");
     try {
       // Fetch ALL events for this farmer to populate the upcoming list correctly
-      const res  = await fetch(`http://localhost:5000/api/crop-plans/events?farmerId=${farmerId}`);
+      const res  = await fetch(`http://localhost:5000/api/crop-plans/events?userId=${userId}`);
       const data = await res.json();
       if (data.success) setEvents(data.data || []);
       else setFetchError(data.message || data.error || "Could not fetch events");
@@ -190,7 +193,7 @@ const CropCalendar = () => {
     try {
       const selectedFarmObj = farms.find(f => f.name === wizardFarm);
       const payload = { 
-        farmerId,
+        userId,
         farmName: wizardFarm, 
         cropName: wizardCrop,
         season: wizardSeason,
