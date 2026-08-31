@@ -30,11 +30,16 @@ const severityConfig = {
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [soilData, setSoilData] = useState({});
+  const [advisories, setAdvisories] = useState([]);
+  const [weather, setWeather] = useState([]);
+
+  const [soilLoading, setSoilLoading] = useState(true);
+  const [advisoriesLoading, setAdvisoriesLoading] = useState(true);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  
   const [farmsCount, setFarmsCount] = useState(0);
   const [locationLabel, setLocationLabel] = useState('Detecting...');
-  const [weather, setWeather] = useState([]);
 
   // Location form state
   const [farmsList, setFarmsList] = useState([]);
@@ -42,6 +47,7 @@ const Dashboard = () => {
   const [activeCoords, setActiveCoords] = useState({ lat: null, lon: null });
 
   const fetchWeather = async (lat, lon) => {
+    setWeatherLoading(true);
     try {
       const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&current=temperature_2m,weathercode,soil_moisture_0_to_7cm&forecast_days=7&timezone=auto`;
       const res = await axios.get(meteoUrl);
@@ -69,28 +75,45 @@ const Dashboard = () => {
     } catch (err) {
       console.error("Frontend weather fetch error:", err);
       setWeather([]);
+    } finally {
+      setWeatherLoading(false);
     }
   };
 
-  const fetchDashboardData = async (lat, lon, label) => {
-    setLoading(true);
+  const fetchSoilData = async (lat, lon) => {
+    setSoilLoading(true);
     try {
-      const targetLat = lat ?? 28.6139;
-      const targetLon = lon ?? 77.209;
-      
-      // Fetch weather directly from frontend in parallel
-      fetchWeather(targetLat, targetLon);
-
-      let url = `${API_URL}/api/dashboard?lat=${targetLat}&lon=${targetLon}`;
-      const response = await axios.get(url);
-      setData(response.data.data);
-      setActiveCoords({ lat: targetLat, lon: targetLon });
-      if (label) setLocationLabel(label);
+      const response = await axios.get(`${API_URL}/api/dashboard/soil?lat=${lat}&lon=${lon}`);
+      setSoilData(response.data.data.soil_metrics || {});
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+      console.error('Error fetching soil data:', err);
     } finally {
-      setLoading(false);
+      setSoilLoading(false);
     }
+  };
+
+  const fetchAdvisories = async (lat, lon) => {
+    setAdvisoriesLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/dashboard/advisories?lat=${lat}&lon=${lon}`);
+      setAdvisories(response.data.data.ai_advisories || []);
+    } catch (err) {
+      console.error('Error fetching advisories:', err);
+    } finally {
+      setAdvisoriesLoading(false);
+    }
+  };
+
+  const fetchLocationData = (lat, lon, label) => {
+    const targetLat = lat ?? 28.6139;
+    const targetLon = lon ?? 77.209;
+    
+    if (label) setLocationLabel(label);
+    setActiveCoords({ lat: targetLat, lon: targetLon });
+
+    fetchWeather(targetLat, targetLon);
+    fetchSoilData(targetLat, targetLon);
+    fetchAdvisories(targetLat, targetLon);
   };
 
   const fetchFarms = async () => {
@@ -108,14 +131,13 @@ const Dashboard = () => {
 
   const handleLiveLocation = () => {
     setSelectedLocationId('live');
-    if (!('geolocation' in navigator)) { fetchDashboardData(null, null, 'Default Location'); return; }
-    setLoading(true);
+    if (!('geolocation' in navigator)) { fetchLocationData(null, null, 'Default Location'); return; }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const lat = coords.latitude, lon = coords.longitude;
-        fetchDashboardData(lat, lon, `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`);
+        fetchLocationData(lat, lon, `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`);
       },
-      () => fetchDashboardData(null, null, 'Default Location')
+      () => fetchLocationData(null, null, 'Default Location')
     );
   };
 
@@ -133,7 +155,7 @@ const Dashboard = () => {
           const coords = farm.geojson.geometry.coordinates[0][0];
           const lon = coords[0];
           const lat = coords[1];
-          fetchDashboardData(lat, lon, farm.name);
+          fetchLocationData(lat, lon, farm.name);
         } catch (err) {
           console.warn("Could not parse farm coordinates", err);
         }
@@ -151,29 +173,11 @@ const Dashboard = () => {
     ? user.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     : 'Farmer';
 
-  // ── Derived data ──────────────────────────────────────────────────────────
-  const advisories = data?.ai_advisories || [];
-  const soil = data?.soil_metrics || {};
+  const soil = soilData || {};
 
   const criticalCount = advisories.filter(a => a.severity === 'critical').length;
   const warningCount = advisories.filter(a => a.severity === 'warning').length;
   const infoCount = advisories.filter(a => a.severity === 'info' || !a.severity).length;
-
-  // ── Full-page loader (first load only) ────────────────────────────────────
-  if (loading && !data) {
-    return (
-      <main className="flex-1 flex items-center justify-center bg-surface-container-lowest">
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin"></div>
-            <Sprout className="absolute inset-0 m-auto w-7 h-7 text-primary" />
-          </div>
-          <p className="text-on-surface-variant font-semibold text-sm animate-pulse">Fetching farm insights…</p>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="flex-1 overflow-y-auto bg-surface-container-lowest min-h-full">
@@ -246,7 +250,7 @@ const Dashboard = () => {
               <select
                 value={selectedLocationId}
                 onChange={handleLocationSelect}
-                disabled={loading}
+                disabled={soilLoading || advisoriesLoading}
                 className="flex-1 min-w-[200px] bg-surface-container-low border border-outline-variant rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all cursor-pointer disabled:opacity-60"
               >
                 <option value="live">📍 Live Location (GPS)</option>
@@ -262,21 +266,34 @@ const Dashboard = () => {
 
         {/* ── SOIL HEALTH METRICS ───────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Soil Moisture', value: soil.moisture != null ? `${soil.moisture}%` : '--', icon: <Droplets className="w-6 h-6" />, color: 'text-blue-500 bg-blue-50', hint: 'Topsoil (0–7cm)' },
-            { label: 'pH Level', value: soil.ph != null ? soil.ph : '--', icon: <FlaskConical className="w-6 h-6" />, color: 'text-purple-500 bg-purple-50', hint: 'Ideal: 6.0–7.5' },
-            { label: 'Nitrogen', value: soil.nitrogen ?? '--', icon: <Sprout className="w-6 h-6" />, color: 'text-green-600 bg-green-50', hint: 'Topsoil level' },
-            { label: 'Air Temp', value: soil.temperature != null ? `${soil.temperature}°C` : '--', icon: <Thermometer className="w-6 h-6" />, color: 'text-orange-500 bg-orange-50', hint: soil.weather_condition ?? 'Current' },
-          ].map(({ label, value, icon, color, hint }) => (
-            <div key={label} className="bg-surface rounded-2xl border border-outline-variant/30 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
-              <div className={`p-3 rounded-2xl shrink-0 ${color} group-hover:scale-110 transition-transform`}>{icon}</div>
-              <div className="min-w-0">
-                <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider truncate">{label}</p>
-                <p className="text-2xl font-black text-on-surface capitalize leading-tight">{value}</p>
-                <p className="text-xs text-on-surface-variant/60 mt-0.5 truncate">{hint}</p>
+          {soilLoading ? (
+            Array(4).fill(0).map((_, i) => (
+              <div key={i} className="bg-surface rounded-2xl border border-outline-variant/30 shadow-sm p-5 flex items-center gap-4 animate-pulse">
+                <div className="w-12 h-12 rounded-2xl bg-surface-container-highest shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="h-3 w-16 bg-surface-container-highest rounded mb-2" />
+                  <div className="h-6 w-12 bg-surface-container-highest rounded mb-1" />
+                  <div className="h-2 w-20 bg-surface-container-highest rounded" />
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            [
+              { label: 'Soil Moisture', value: soil.moisture != null ? `${soil.moisture}%` : '--', icon: <Droplets className="w-6 h-6" />, color: 'text-blue-500 bg-blue-50', hint: 'Topsoil (0–7cm)' },
+              { label: 'pH Level', value: soil.ph != null ? soil.ph : '--', icon: <FlaskConical className="w-6 h-6" />, color: 'text-purple-500 bg-purple-50', hint: 'Ideal: 6.0–7.5' },
+              { label: 'Nitrogen', value: soil.nitrogen ?? '--', icon: <Sprout className="w-6 h-6" />, color: 'text-green-600 bg-green-50', hint: 'Topsoil level' },
+              { label: 'Air Temp', value: soil.temperature != null ? `${soil.temperature}°C` : '--', icon: <Thermometer className="w-6 h-6" />, color: 'text-orange-500 bg-orange-50', hint: soil.weather_condition ?? 'Current' },
+            ].map(({ label, value, icon, color, hint }) => (
+              <div key={label} className="bg-surface rounded-2xl border border-outline-variant/30 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
+                <div className={`p-3 rounded-2xl shrink-0 ${color} group-hover:scale-110 transition-transform`}>{icon}</div>
+                <div className="min-w-0">
+                  <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider truncate">{label}</p>
+                  <p className="text-2xl font-black text-on-surface capitalize leading-tight">{value}</p>
+                  <p className="text-xs text-on-surface-variant/60 mt-0.5 truncate">{hint}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* ── MAIN CONTENT GRID ─────────────────────────────────────────── */}
@@ -295,11 +312,22 @@ const Dashboard = () => {
                   <h2 className="text-base font-bold text-on-surface">7-Day Weather Forecast</h2>
                   <p className="text-xs text-on-surface-variant">Daily avg temperature &amp; conditions</p>
                 </div>
-                {loading && <Loader2 className="w-4 h-4 animate-spin text-primary ml-auto" />}
+                {weatherLoading && <Loader2 className="w-4 h-4 animate-spin text-primary ml-auto" />}
               </div>
 
               <div className="p-5">
-                {weather.length > 0 ? (
+                {weatherLoading ? (
+                  <div className="grid grid-cols-7 gap-2 animate-pulse">
+                    {Array(7).fill(0).map((_, i) => (
+                      <div key={i} className="flex flex-col items-center gap-2 p-2 rounded-2xl bg-surface-container-lowest border border-outline-variant/20 h-[100px]">
+                        <div className="w-6 h-2 bg-surface-container-highest rounded" />
+                        <div className="w-8 h-8 rounded-full bg-surface-container-highest mt-1" />
+                        <div className="w-5 h-4 bg-surface-container-highest rounded mt-1" />
+                        <div className="w-4 h-2 bg-surface-container-highest rounded mt-0.5" />
+                      </div>
+                    ))}
+                  </div>
+                ) : weather.length > 0 ? (
                   <div className="grid grid-cols-7 gap-2">
                     {weather.slice(0, 7).map((w, idx) => {
                       const isToday = idx === 0;
@@ -349,10 +377,21 @@ const Dashboard = () => {
                   <h2 className="text-base font-bold text-on-surface">Smart AI Advisories</h2>
                   <p className="text-xs text-on-surface-variant">Powered by Gemini · location-aware</p>
                 </div>
-                {loading && <Loader2 className="w-4 h-4 animate-spin text-primary ml-auto" />}
+                {advisoriesLoading && <Loader2 className="w-4 h-4 animate-spin text-primary ml-auto" />}
               </div>
               <div className="p-5 flex flex-col gap-3">
-                {advisories.length > 0 ? advisories.map((adv, idx) => {
+                {advisoriesLoading ? (
+                  Array(3).fill(0).map((_, i) => (
+                    <div key={i} className="flex items-start gap-4 p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/20 animate-pulse">
+                      <div className="w-8 h-8 rounded-xl bg-surface-container-highest shrink-0" />
+                      <div className="flex-1 min-w-0 flex flex-col gap-2 pt-1">
+                        <div className="w-16 h-3 bg-surface-container-highest rounded" />
+                        <div className="w-3/4 h-4 bg-surface-container-highest rounded" />
+                        <div className="w-full h-3 bg-surface-container-highest rounded" />
+                      </div>
+                    </div>
+                  ))
+                ) : advisories.length > 0 ? advisories.map((adv, idx) => {
                   const cfg = severityConfig[adv.severity] || severityConfig.info;
                   return (
                     <div key={idx} className={`flex items-start gap-4 p-4 rounded-2xl border-l-4 bg-surface-container-lowest border border-outline-variant/20 hover:shadow-sm transition-all ${cfg.border}`}>

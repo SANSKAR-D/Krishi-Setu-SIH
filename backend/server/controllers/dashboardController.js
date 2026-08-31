@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // ─── 30-minute location-aware cache for AI advisories ───
 const advisoryCache = {};
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes in ms
+const CACHE_TTL = 20 * 60 * 1000; // 20 minutes in ms
 
 
 
@@ -92,24 +92,40 @@ const getSoilAndWeatherData = async (lat, lon) => {
   return { soilMetrics, weatherData };
 };
 
-const getDashboardData = async (req, res) => {
+const getDashboardSoilData = async (req, res) => {
   try {
     const lat = req.query.lat ? parseFloat(req.query.lat) : 28.6139;
     const lon = req.query.lon ? parseFloat(req.query.lon) : 77.2090;
 
-    const { soilMetrics, weatherData } = await getSoilAndWeatherData(lat, lon);
+    const { soilMetrics } = await getSoilAndWeatherData(lat, lon);
 
-    // 5. Generate or Fetch Cached AI Advisories
+    res.json({
+      success: true,
+      data: {
+        soil_metrics: soilMetrics
+      }
+    });
+
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    res.status(500).json({ error: "Failed to fetch dashboard soil data" });
+  }
+};
+
+const getDashboardAdvisories = async (req, res) => {
+  try {
+    const lat = req.query.lat ? parseFloat(req.query.lat) : 28.6139;
+    const lon = req.query.lon ? parseFloat(req.query.lon) : 77.2090;
+    const { soilMetrics } = await getSoilAndWeatherData(lat, lon);
+
     let aiAdvisories = [];
     const cacheKey = `${lat.toFixed(2)}_${lon.toFixed(2)}`;
     const now = Date.now();
 
     if (advisoryCache[cacheKey] && (now - advisoryCache[cacheKey].timestamp) < CACHE_TTL) {
-      // Serve from location-specific cache
       aiAdvisories = advisoryCache[cacheKey].data;
       console.log(`📋 Advisories served from cache for location ${cacheKey}`);
     } else {
-      // Call Gemini for fresh location-specific advisories
       try {
         const { GoogleGenAI } = require('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
@@ -119,15 +135,15 @@ const getDashboardData = async (req, res) => {
         provide 2 to 3 short, actionable advisories.
         
         Soil Data:
-        Topsoil Moisture: ${soilMetrics.moisture}%
-        pH: ${soilMetrics.ph}
-        Nitrogen: ${soilMetrics.nitrogen}
-        Phosphorus: ${soilMetrics.phosphorus}
-        Potassium: ${soilMetrics.potassium}
+        Topsoil Moisture: ${soilMetrics.moisture !== null ? soilMetrics.moisture + '%' : 'N/A'}
+        pH: ${soilMetrics.ph !== null ? soilMetrics.ph : 'N/A'}
+        Nitrogen: ${soilMetrics.nitrogen !== null ? soilMetrics.nitrogen : 'N/A'}
+        Phosphorus: N/A
+        Potassium: N/A
         
         Weather Data:
-        Air Temperature: ${soilMetrics.temperature}°C
-        Current Weather: ${soilMetrics.weather_condition}
+        Air Temperature: ${soilMetrics.temperature !== null ? soilMetrics.temperature + '°C' : 'N/A'}
+        Current Weather: ${soilMetrics.weather_condition !== null ? soilMetrics.weather_condition : 'N/A'}
         
         Reply ONLY with a JSON array of objects. Each object must have:
         "title" (string, short e.g. "Water Crops Today"),
@@ -143,7 +159,6 @@ const getDashboardData = async (req, res) => {
 
         aiAdvisories = JSON.parse(aiResponse.text.trim());
 
-        // Save to cache
         advisoryCache[cacheKey] = {
           data: aiAdvisories,
           timestamp: now
@@ -154,21 +169,18 @@ const getDashboardData = async (req, res) => {
       }
     }
 
-    // 6. Return payload
     res.json({
       success: true,
       data: {
-        soil_metrics: soilMetrics,
-        weather_forecast: weatherData,
         ai_advisories: aiAdvisories
       }
     });
 
   } catch (err) {
-    console.error("Dashboard error:", err);
-    res.status(500).json({ error: "Failed to fetch dashboard data" });
+    console.error("Dashboard AI error:", err);
+    res.status(500).json({ error: "Failed to fetch AI advisories" });
   }
 };
 
-module.exports = { getDashboardData, getSoilAndWeatherData };
+module.exports = { getDashboardSoilData, getDashboardAdvisories, getSoilAndWeatherData };
 
