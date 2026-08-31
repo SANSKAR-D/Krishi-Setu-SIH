@@ -25,6 +25,7 @@ class AgentRequest(BaseModel):
     user_query: str
     image_urls: Optional[List[str]] = None
     thread_id: Optional[str] = "default"
+    soil_metrics: Optional[Dict[str, Any]] = None
 
 class AgentResponse(BaseModel):
     final_advice: str
@@ -44,7 +45,8 @@ def ask_agent(request: AgentRequest):
             "messages": [HumanMessage(content=request.user_query)],
             "user_query": request.user_query,
             "image_urls": request.image_urls,
-            "user_id": request.thread_id or "dummy"
+            "user_id": request.thread_id or "dummy",
+            "soil_metrics": request.soil_metrics
         }
         
         # Remove None values to keep state clean 

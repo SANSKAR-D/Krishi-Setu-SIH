@@ -7,9 +7,13 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (lat, lon) => {
       try {
-        const response = await axios.get("http://localhost:5000/api/dashboard");
+        let url = "http://localhost:5000/api/dashboard";
+        if (lat && lon) {
+          url += `?lat=${lat}&lon=${lon}`;
+        }
+        const response = await axios.get(url);
         setData(response.data.data);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -17,7 +21,20 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-    fetchDashboardData();
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          fetchDashboardData(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.warn("Geolocation blocked or failed. Using default location.", error);
+          fetchDashboardData();
+        }
+      );
+    } else {
+      fetchDashboardData();
+    }
   }, []);
 
   if (loading) {
@@ -82,20 +99,20 @@ const Dashboard = () => {
               </div>
               <div className="p-8">
                 {weather.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
-                    {weather.slice(0, 5).map((w, idx) => (
-                      <div key={idx} className="flex flex-col items-center justify-center p-5 rounded-2xl bg-surface hover:bg-blue-50/50 border border-outline-variant/20 transition-all hover:-translate-y-1 hover:shadow-sm group cursor-pointer">
-                        <span className="text-sm font-bold text-on-surface-variant group-hover:text-blue-700 transition-colors mb-4 uppercase tracking-wider">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
+                    {weather.slice(0, 7).map((w, idx) => (
+                      <div key={idx} className="flex flex-col items-center justify-center p-4 rounded-2xl bg-surface hover:bg-blue-50/50 border border-outline-variant/20 transition-all hover:-translate-y-1 hover:shadow-sm group cursor-pointer">
+                        <span className="text-xs font-bold text-on-surface-variant group-hover:text-blue-700 transition-colors mb-3 uppercase tracking-wider">
                           {new Date(w.date).toLocaleDateString('en-US', { weekday: 'short' })}
                         </span>
-                        <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white shadow-sm mb-4 group-hover:scale-110 transition-transform duration-300">
-                          {w.condition.toLowerCase().includes('cloud') ? <Cloud className="text-slate-400 w-7 h-7" /> :
-                           w.condition.toLowerCase().includes('rain') ? <CloudRain className="text-blue-400 w-7 h-7" /> :
-                           <Sun className="text-orange-400 w-7 h-7" />}
+                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-sm mb-3 group-hover:scale-110 transition-transform duration-300">
+                          {w.condition.toLowerCase().includes('cloud') ? <Cloud className="text-slate-400 w-6 h-6" /> :
+                           w.condition.toLowerCase().includes('rain') ? <CloudRain className="text-blue-400 w-6 h-6" /> :
+                           <Sun className="text-orange-400 w-6 h-6" />}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Thermometer className="w-4 h-4 text-on-surface-variant/50" />
-                          <span className="text-xl font-black text-on-surface">{w.temp}&deg;</span>
+                        <div className="flex items-center gap-1">
+                          <Thermometer className="w-3 h-3 text-on-surface-variant/50" />
+                          <span className="text-lg font-black text-on-surface">{w.temp}&deg;</span>
                         </div>
                       </div>
                     ))}

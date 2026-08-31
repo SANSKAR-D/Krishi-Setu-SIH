@@ -83,18 +83,34 @@ const ExpertChat = () => {
     setPreviewUrls([]);
     setIsLoading(true);
 
-    try {
-      const response = await axios.post("http://localhost:5000/api/chat", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+    // Try to get location, then send request
+    const sendRequest = async (lat = null, lon = null) => {
+      if (lat && lon) {
+        formData.append("lat", lat);
+        formData.append("lon", lon);
+      }
+      try {
+        const response = await axios.post("http://localhost:5000/api/chat", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
-      const aiResponse = response.data.response;
-      setMessages((prev) => [...prev, { role: "ai", text: aiResponse }]);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setMessages((prev) => [...prev, { role: "ai", text: "Sorry, there was an error processing your request." }]);
-    } finally {
-      setIsLoading(false);
+        const aiResponse = response.data.response;
+        setMessages((prev) => [...prev, { role: "ai", text: aiResponse }]);
+      } catch (error) {
+        console.error("Error sending message:", error);
+        setMessages((prev) => [...prev, { role: "ai", text: "Sorry, there was an error processing your request." }]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => sendRequest(position.coords.latitude, position.coords.longitude),
+        () => sendRequest() // fallback without location
+      );
+    } else {
+      sendRequest();
     }
   };
 
