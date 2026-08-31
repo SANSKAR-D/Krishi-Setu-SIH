@@ -18,6 +18,7 @@ const getSoilAndWeatherData = async (lat, lon) => {
   let weatherData = null;
   let weatherCondition = "Sunny";
   let soilMoisture = 40; 
+  
   let airTemp = 25; 
 
   // Open-Meteo
