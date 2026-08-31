@@ -13,6 +13,9 @@ import {
   MapPin,
   FilePlus,
 } from "lucide-react";
+import { AuthContext } from "../../context/AuthContext";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // ─── Constants ────────────────────────────────────────────────
 
@@ -37,9 +40,8 @@ const getEventMeta = (eventType = "") =>
   EVENT_META[eventType.toLowerCase()] ?? EVENT_META.others;
 
 const emptyForm = {
-  title: "", eventType: "", date: "", crop: "",
-  field: "", farmerId: "F123", fertilizerName: "",
-  pesticideName: "", diseaseName: "", dosage: "", cost: "", notes: "",
+  title: "", eventType: "", date: "", 
+  fertilizerName: "", pesticideName: "", diseaseName: "", dosage: "", cost: "", notes: "", actualYield: ""
 };
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -82,16 +84,17 @@ const SummaryCard = ({ icon: Icon, label, value, accentColor }) => (
 // ─── Main Component ───────────────────────────────────────────
 
 const CropCalendar = () => {
+  const { user } = React.useContext(AuthContext);
+  const userId = user?.id ?? user?._id;
 
   // Global Context State
-  const farmerId = "F123";
   const [cropPlans, setCropPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   
   // Selected Profile
   const [selectedFarm, setSelectedFarm] = useState("");
-  const [selectedCrop, setSelectedCrop] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
 
   // Calendar State
   const [currentDate,   setCurrentDate]   = useState(new Date());
@@ -109,6 +112,9 @@ const CropCalendar = () => {
   const [farms, setFarms] = useState([]);
   const [wizardFarm, setWizardFarm] = useState("");
   const [wizardCrop, setWizardCrop] = useState("");
+  const [wizardSeason, setWizardSeason] = useState("");
+  const [wizardYear, setWizardYear] = useState(new Date().getFullYear().toString());
+  const [wizardArea, setWizardArea] = useState("");
   const [creatingPlan, setCreatingPlan] = useState(false);
 
   const today = startOfDay(new Date());
@@ -117,14 +123,15 @@ const CropCalendar = () => {
   useEffect(() => {
     // 1. Fetch Crop Plans
     const initData = async () => {
+      if (!userId) return;
       setLoadingPlans(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/crop-plans?farmerId=${farmerId}`);
+        const res = await fetch(`${API_URL}/api/crop-plans?userId=${userId}`);
         const data = await res.json();
         if (data.success && data.data.length > 0) {
           setCropPlans(data.data);
           setSelectedFarm(data.data[0].farmName);
-          setSelectedCrop(data.data[0].cropName);
+          setSelectedPlanId(data.data[0]._id);
           setShowWizard(false);
         } else {
           setShowWizard(true);
@@ -139,7 +146,7 @@ const CropCalendar = () => {
       // 2. Fetch GIS Farms for Wizard dropdown
       try {
         const gisUrl = import.meta.env.VITE_GIS_URL || "http://localhost:8001";
-        const res = await fetch(`${gisUrl}/api/farms`);
+        const res = await fetch(`${gisUrl}/api/farms?user_id=${userId}`);
         const data = await res.json();
         if (data.status === "success") setFarms(data.data || []);
       } catch (e) {
@@ -147,23 +154,24 @@ const CropCalendar = () => {
       }
     };
     initData();
-  }, []);
+  }, [userId]);
 
   // Fetch events whenever we are NOT in the wizard (meaning we have an active context)
   useEffect(() => {
-    if (!showWizard && selectedFarm && selectedCrop) {
+    if (!showWizard && selectedFarm && selectedPlanId) {
       fetchEvents();
     }
-  }, [showWizard, selectedFarm, selectedCrop]);
+  }, [showWizard, selectedFarm, selectedPlanId]);
 
   const fetchEvents = async () => {
     setLoadingEvents(true);
     setFetchError("");
     try {
-      const res  = await fetch(`http://localhost:5000/api/events?farmerId=${farmerId}`);
+      // Fetch ALL events for this farmer to populate the upcoming list correctly
+      const res  = await fetch(`${API_URL}/api/crop-plans/events?userId=${userId}`);
       const data = await res.json();
       if (data.success) setEvents(data.data || []);
-      else setFetchError(data.message || "Could not fetch events");
+      else setFetchError(data.message || data.error || "Could not fetch events");
     } catch {
       setFetchError("Could not connect to server");
     } finally {
@@ -177,27 +185,41 @@ const CropCalendar = () => {
     // Find the first crop plan associated with this farm and select it automatically
     const plan = cropPlans.find(p => p.farmName === newFarm);
     if (plan) {
-      setSelectedCrop(plan.cropName);
+      setSelectedPlanId(plan._id);
     }
   };
 
   const handleCreatePlan = async () => {
-    if (!wizardFarm || !wizardCrop) return;
+    if (!wizardFarm || !wizardCrop || !wizardSeason || !wizardYear) return;
     setCreatingPlan(true);
     try {
-      const res = await fetch("http://localhost:5000/api/crop-plans", {
+      const selectedFarmObj = farms.find(f => f.name === wizardFarm);
+      const payload = { 
+        userId,
+        farmName: wizardFarm, 
+        cropName: wizardCrop,
+        season: wizardSeason,
+        year: parseInt(wizardYear, 10),
+        area: parseFloat(wizardArea) || 0,
+        latitude: selectedFarmObj?.latitude || selectedFarmObj?.lat || 28.6139,
+        longitude: selectedFarmObj?.longitude || selectedFarmObj?.lng || 77.2090
+      };
+      
+      const res = await fetch(`${API_URL}/api/crop-plans`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ farmerId, farmName: wizardFarm, cropName: wizardCrop })
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
         setCropPlans(prev => [data.data, ...prev]);
         setSelectedFarm(wizardFarm);
-        setSelectedCrop(wizardCrop);
+        setSelectedPlanId(data.data._id);
         setShowWizard(false);
       } else {
-        alert(data.message);
+        alert(data.message || data.error || "Failed to create plan");
       }
     } catch (e) {
       alert("Failed to create crop plan");
@@ -214,10 +236,7 @@ const CropCalendar = () => {
     setDrawerDate(cellDate);
     setFormData({
       ...emptyForm,
-      date:     localDate.toISOString().split("T")[0],
-      crop:     selectedCrop,
-      field:    selectedFarm,
-      farmerId: farmerId,
+      date: localDate.toISOString().split("T")[0],
     });
     setFormError("");
   };
@@ -233,16 +252,28 @@ const CropCalendar = () => {
     setSubmitting(true);
     setFormError("");
     try {
-      const res  = await fetch("http://localhost:5000/api/events", {
+      const currentPlan = cropPlans.find(p => p._id === selectedPlanId);
+      if (!currentPlan) throw new Error("No active crop plan selected");
+
+      const payload = { ...formData, cropPlanId: currentPlan._id };
+
+      const res  = await fetch(`${API_URL}/api/crop-plans/events`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(formData),
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data.success) { setEvents(p => [...p, data.data]); closeDrawer(); }
-      else setFormError(data.message || "Failed to save event");
-    } catch {
-      setFormError("Could not connect to server");
+      
+      if (data.success) { 
+        // fetch events again to get the fully populated cropPlanId object
+        fetchEvents(); 
+        closeDrawer(); 
+      }
+      else setFormError(data.message || data.error || "Failed to save event");
+    } catch (err) {
+      setFormError(err.message || "Could not connect to server");
     } finally {
       setSubmitting(false);
     }
@@ -291,6 +322,14 @@ const CropCalendar = () => {
             <label className={labelCls} style={{ color: "#3d4a42" }}>Disease / Infection Name *</label>
             <input type="text" value={formData.diseaseName} onChange={e => fc("diseaseName", e.target.value)}
               className={inputCls} style={inputStyle} placeholder="e.g. Leaf Rust, Blight" />
+          </div>
+        );
+      case "Harvest":
+        return (
+          <div>
+            <label className={labelCls} style={{ color: "#3d4a42" }}>Actual Yield (optional)</label>
+            <input type="number" value={formData.actualYield} onChange={e => fc("actualYield", e.target.value)}
+              className={inputCls} style={inputStyle} placeholder="e.g. 50 (Quintals/Tons)" />
           </div>
         );
       case "Others":
@@ -356,7 +395,38 @@ const CropCalendar = () => {
               </div>
             </div>
 
-            <button disabled={!wizardFarm || !wizardCrop || creatingPlan} onClick={handleCreatePlan}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Season *</label>
+                <select value={wizardSeason} onChange={e => setWizardSeason(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl text-sm font-medium outline-none appearance-none cursor-pointer"
+                  style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }}>
+                  <option value="">Select season…</option>
+                  <option value="Kharif">Kharif</option>
+                  <option value="Rabi">Rabi</option>
+                  <option value="Zaid">Zaid</option>
+                  <option value="Annual">Annual</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Year *</label>
+                <input type="number" value={wizardYear} onChange={e => setWizardYear(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl text-sm font-medium outline-none"
+                  style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }}
+                  placeholder="2026" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#3d4a42" }}>Area (Acres)</label>
+              <input type="number" value={wizardArea} onChange={e => setWizardArea(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl text-sm font-medium outline-none"
+                style={{ background: "#f3f4f5", border: "1.5px solid #bccac0", color: "#191c1d" }}
+                placeholder="e.g. 5" />
+            </div>
+
+            <button disabled={!wizardFarm || !wizardCrop || !wizardSeason || !wizardYear || creatingPlan} onClick={handleCreatePlan}
               className="mt-2 w-full h-13 rounded-xl font-bold text-base tracking-wide transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: "#006948", color: "#ffffff", height: 52 }}>
               {creatingPlan ? "Saving..." : "Create Plan →"}
@@ -369,7 +439,8 @@ const CropCalendar = () => {
 
   // ── Derived Data for Header Dropdowns ────────────────────────
   const uniqueFarms = Array.from(new Set(cropPlans.map(p => p.farmName)));
-  const cropsForSelectedFarm = cropPlans.filter(p => p.farmName === selectedFarm).map(p => p.cropName);
+  const plansForSelectedFarm = cropPlans.filter(p => p.farmName === selectedFarm);
+  const currentPlan = cropPlans.find(p => p._id === selectedPlanId);
 
   // ── CALENDAR GRID BUILD ───────────────────────────────────────
   const year       = currentDate.getFullYear();
@@ -381,20 +452,21 @@ const CropCalendar = () => {
   const daysCells = Array.from({ length: daysInMonth }, (_, i) => {
     const day      = i + 1;
     const dateObj  = new Date(year, monthIndex, day);
-    const dayEvs   = events.filter(ev => ev.field === selectedFarm && ev.crop === selectedCrop && isSameDay(new Date(ev.date), dateObj));
+    const dayEvs   = events.filter(ev => ev.cropPlanId?._id === selectedPlanId && isSameDay(new Date(ev.date), dateObj));
     return { blank: false, key: `d-${day}`, day, isToday: isSameDay(dateObj, today), dateObj, events: dayEvs };
   });
   const cells = [...blanks, ...daysCells];
 
   // ── Summary stats ─────────────────────────────────────────────
-  const ctxEvs = events.filter(ev => ev.field === selectedFarm && ev.crop === selectedCrop);
+  const ctxEvs = events.filter(ev => ev.cropPlanId?._id === selectedPlanId);
   const upcomingSowing  = ctxEvs.filter(ev => ev.eventType === "Sowing"  && startOfDay(new Date(ev.date)) >= today).length;
   const upcomingHarvest = ctxEvs.filter(ev => ev.eventType === "Harvest" && startOfDay(new Date(ev.date)) >= today).length;
   const overdue         = ctxEvs.filter(ev => startOfDay(new Date(ev.date)) < today && ev.status !== "completed").length;
 
   // ── Upcoming task list ────────────────────────────────────────
-  const upcomingList = [...ctxEvs]
-    .filter(ev => startOfDay(new Date(ev.date)) >= today)
+  // Show all pending/upcoming tasks across ALL plans for the farmer that are >= today
+  const upcomingList = [...events]
+    .filter(ev => startOfDay(new Date(ev.date)) >= today && ev.status !== "completed")
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(0, 5);
 
@@ -427,13 +499,13 @@ const CropCalendar = () => {
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "#e8f5f0", border: "1px solid #bccac0" }}>
               <Leaf className="w-3 h-3" style={{ color: "#006948" }} />
               <select
-                value={selectedCrop}
-                onChange={e => setSelectedCrop(e.target.value)}
+                value={selectedPlanId}
+                onChange={e => setSelectedPlanId(e.target.value)}
                 className="text-xs font-bold outline-none cursor-pointer bg-transparent"
                 style={{ color: "#006948" }}
               >
-                {cropsForSelectedFarm.map(c => (
-                  <option key={c} value={c}>{c}</option>
+                {plansForSelectedFarm.map(p => (
+                  <option key={p._id} value={p._id}>{p.cropName} ({p.season} {p.year})</option>
                 ))}
               </select>
             </div>
@@ -556,7 +628,12 @@ const CropCalendar = () => {
                 const Icon   = m.icon;
                 const evDate = startOfDay(new Date(ev.date));
                 const diff   = Math.round((evDate - today) / 86400000);
-                const badge  = diff === 0 ? "Today" : `in ${diff} day${diff !== 1 ? "s" : ""}`;
+                
+                let badge = "";
+                if (diff === 0) badge = "Today";
+                else if (diff > 0) badge = `in ${diff} day${diff !== 1 ? "s" : ""}`;
+                else badge = `${Math.abs(diff)} day${Math.abs(diff) !== 1 ? "s" : ""} ago`;
+                
                 return (
                   <div key={i} className="flex items-center gap-4 py-3.5">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: m.bg }}>
@@ -564,9 +641,9 @@ const CropCalendar = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate" style={{ color: "#191c1d" }}>{ev.title}</p>
-                      <p className="text-xs mt-0.5" style={{ color: "#6d7a72" }}>{m.label} · {ev.crop}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "#6d7a72" }}>{m.label} · {ev.cropPlanId?.cropName}</p>
                     </div>
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: m.bg, color: m.color }}>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0" style={{ background: diff < 0 ? "#fde8e8" : m.bg, color: diff < 0 ? "#ba1a1a" : m.color }}>
                       {badge}
                     </span>
                   </div>
@@ -602,7 +679,7 @@ const CropCalendar = () => {
             )}
             <div className="flex gap-2">
               <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5" style={{ background: "#e8f5f0", color: "#006948" }}>
-                <Leaf className="w-3 h-3" /> {selectedCrop}
+                <Leaf className="w-3 h-3" /> {currentPlan ? `${currentPlan.cropName} (${currentPlan.season} ${currentPlan.year})` : ""}
               </span>
               <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5" style={{ background: "#e8f5f0", color: "#006948" }}>
                 <MapPin className="w-3 h-3" /> {selectedFarm}

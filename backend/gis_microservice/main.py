@@ -112,6 +112,7 @@ def get_db():
 
 # ─── Schemas ───
 class FarmCreate(BaseModel):
+    user_id: str
     name: str
     geojson: Dict[str, Any]
 
@@ -467,9 +468,9 @@ async def get_environment(
 
 
 @app.get("/api/farms")
-def get_farms(db: Session = Depends(get_db)):
+def get_farms(user_id: str = Query(..., description="User ID"), db: Session = Depends(get_db)):
     """Return all saved farm boundaries as GeoJSON features."""
-    farms = db.query(Farm).all()
+    farms = db.query(Farm).filter(Farm.user_id == user_id).all()
     results = []
     for f in farms:
         try:
@@ -517,7 +518,7 @@ def create_farm(farm: FarmCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Could not parse geometry: {str(e)}")
 
     try:
-        db_farm = Farm(name=farm.name, geom=from_shape(geom, srid=4326))
+        db_farm = Farm(user_id=farm.user_id, name=farm.name, geom=from_shape(geom, srid=4326))
         db.add(db_farm)
         db.commit()
         db.refresh(db_farm)
@@ -528,11 +529,11 @@ def create_farm(farm: FarmCreate, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/farms/{farm_id}")
-def delete_farm(farm_id: int, db: Session = Depends(get_db)):
+def delete_farm(farm_id: int, user_id: str = Query(..., description="User ID"), db: Session = Depends(get_db)):
     """Delete a saved farm by ID."""
-    farm = db.query(Farm).filter(Farm.id == farm_id).first()
+    farm = db.query(Farm).filter(Farm.id == farm_id, Farm.user_id == user_id).first()
     if not farm:
-        raise HTTPException(status_code=404, detail="Farm not found.")
+        raise HTTPException(status_code=404, detail="Farm not found or not owned by user.")
     db.delete(farm)
     db.commit()
     return {"status": "success", "message": f"Farm {farm_id} deleted."}
