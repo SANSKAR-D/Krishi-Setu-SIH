@@ -4,6 +4,7 @@ const streamifier = require('streamifier');
 const { GoogleGenAI } = require('@google/genai');
 const axios = require('axios');
 const fs = require('fs');
+const FormData = require('form-data');
 const ChatHistory = require('../models/ChatHistory');
 const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
 
@@ -19,7 +20,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_API_KEY,
 });
 
-const TRANSLATION_MODEL = "gemini-3.5-flash-lite";
+const TRANSLATION_MODEL = "gemini-3.1-flash-lite";
 
 // ─── Helper: safely parse JSON from Gemini (strips markdown fences) ───
 function safeJsonParse(text) {
@@ -211,7 +212,51 @@ const handleChatRequest = async (req, res) => {
   }
 };
 
+// ─── Transcribe Audio with Gemini ───
+const transcribeAudio = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No audio file provided" });
+    }
+
+    const mimeType = req.file.mimetype || 'audio/webm';
+    const audioData = req.file.buffer.toString("base64");
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: [
+        {
+          inlineData: {
+            data: audioData,
+            mimeType: mimeType
+          }
+        },
+        `Listen to this audio and transcribe exactly what is spoken in the original language. 
+If it is spoken in Hindi, you MUST output the transcription in Devanagari script (e.g. "नमस्ते"). DO NOT use Latin/English letters for Hindi words. 
+Detect the primary language. CRITICAL: Never output "Hinglish" as the language, use "Hindi" instead.
+Reply ONLY with a valid JSON object in this exact format: {"text": "the transcription", "language": "detected language"}`
+      ],
+      config: { responseMimeType: "application/json" }
+    });
+
+    const result = safeJsonParse(response.text);
+
+    console.log(`🎙️ Voice Detected Language: ${result.language}`);
+    console.log(`🎙️ Voice Transcript: ${result.text}`);
+
+    res.json({
+      success: true,
+      text: result.text,
+      language: result.language || 'unknown'
+    });
+  } catch (error) {
+    console.error("Error transcribing audio with Gemini:", error.message || error);
+    res.status(500).json({ error: "Failed to transcribe audio." });
+  }
+};
+
 module.exports = {
   handleChatRequest,
-  getChatHistory
+  getChatHistory,
+  transcribeAudio
 };

@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
+import * as turf from '@turf/turf';
 import {
   AlertTriangle, Brain, Sun, CloudSun, CloudRain, Cloud, Loader2, Sparkles,
   Thermometer, MapPin, Search, Navigation2, Droplets, FlaskConical,
@@ -38,7 +39,7 @@ const Dashboard = () => {
   const [soilLoading, setSoilLoading] = useState(true);
   const [advisoriesLoading, setAdvisoriesLoading] = useState(true);
   const [weatherLoading, setWeatherLoading] = useState(true);
-  
+
   const [farmsCount, setFarmsCount] = useState(0);
   const [locationLabel, setLocationLabel] = useState('Detecting...');
 
@@ -48,6 +49,20 @@ const Dashboard = () => {
   const [activeCoords, setActiveCoords] = useState({ lat: null, lon: null });
 
   const fetchWeather = async (lat, lon) => {
+    const cacheKey = `weather_${lat.toFixed(3)}_${lon.toFixed(3)}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < 3600000) { // 1 hour cache
+          setWeather(parsed.weather);
+          setCurrentWeather(parsed.currentWeather);
+          setWeatherLoading(false);
+          return parsed.currentWeather;
+        }
+      } catch (e) { }
+    }
+
     setWeatherLoading(true);
     try {
       const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&current=temperature_2m,weathercode,soil_moisture_0_to_7cm&forecast_days=7&timezone=auto`;
@@ -72,10 +87,13 @@ const Dashboard = () => {
           moisture = Math.round(current.soil_moisture_0_to_7cm * 100);
         }
       }
-      setCurrentWeather({ temperature: temp, moisture, condition });
-      
+
+      const currentWeatherObj = { temperature: temp, moisture, condition };
+      setCurrentWeather(currentWeatherObj);
+
+      let wData = [];
       if (daily && daily.time) {
-        const wData = daily.time.slice(0, 7).map((date, index) => ({
+        wData = daily.time.slice(0, 7).map((date, index) => ({
           date: date,
           temp_max: Math.round(daily.temperature_2m_max[index]),
           temp_min: Math.round(daily.temperature_2m_min[index]),
@@ -84,7 +102,14 @@ const Dashboard = () => {
         }));
         setWeather(wData);
       }
-      return { temperature: temp, moisture, condition };
+
+      localStorage.setItem(cacheKey, JSON.stringify({
+        timestamp: Date.now(),
+        weather: wData,
+        currentWeather: currentWeatherObj
+      }));
+
+      return currentWeatherObj;
     } catch (err) {
       console.error("Frontend weather fetch error:", err);
       setWeather([]);
@@ -96,18 +121,53 @@ const Dashboard = () => {
   };
 
   const fetchSoilData = async (lat, lon) => {
+    const cacheKey = `soil_${lat.toFixed(3)}_${lon.toFixed(3)}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < 20 * 60 * 1000) { // 20 minutes cache
+          setSoilData(parsed.data);
+          setSoilLoading(false);
+          return;
+        }
+      } catch (e) { }
+    }
+
     setSoilLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/dashboard/soil?lat=${lat}&lon=${lon}`);
-      setSoilData(response.data.data.soil_metrics || {});
+      const response = await axios.get(`${GIS_API_URL}/api/environment?lat=${lat}&lng=${lon}`);
+      const soilInfo = response.data?.data?.soil || {};
+      
+      const data = {
+        ph: soilInfo.ph != null ? soilInfo.ph : null,
+        nitrogen: soilInfo.nitrogen_g_kg != null ? soilInfo.nitrogen_g_kg : null
+      };
+      
+      setSoilData(data);
+      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data }));
     } catch (err) {
-      console.error('Error fetching soil data:', err);
+      console.error('Error fetching soil data from GIS:', err);
+      setSoilData({ ph: null, nitrogen: null });
     } finally {
       setSoilLoading(false);
     }
   };
 
   const fetchAdvisories = async (lat, lon, cw) => {
+    const cacheKey = `adv_${lat.toFixed(3)}_${lon.toFixed(3)}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < 3600000 * 2) { // 2 hours cache
+          setAdvisories(parsed.data);
+          setAdvisoriesLoading(false);
+          return;
+        }
+      } catch (e) { }
+    }
+
     setAdvisoriesLoading(true);
     try {
       let query = `?lat=${lat}&lon=${lon}`;
@@ -116,7 +176,9 @@ const Dashboard = () => {
       if (cw && cw.condition) query += `&condition=${cw.condition}`;
 
       const response = await axios.get(`${API_URL}/api/dashboard/advisories${query}`);
-      setAdvisories(response.data.data.ai_advisories || []);
+      const data = response.data.data.ai_advisories || [];
+      setAdvisories(data);
+      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data }));
     } catch (err) {
       console.error('Error fetching advisories:', err);
     } finally {
@@ -127,7 +189,7 @@ const Dashboard = () => {
   const fetchLocationData = async (lat, lon, label) => {
     const targetLat = lat ?? 28.6139;
     const targetLon = lon ?? 77.209;
-    
+
     if (label) setLocationLabel(label);
     setActiveCoords({ lat: targetLat, lon: targetLon });
 
@@ -138,11 +200,24 @@ const Dashboard = () => {
 
   const fetchFarms = async () => {
     if (!user) return;
+    const userId = user.id || user._id;
+    const cacheKey = `farms_${userId}`;
+
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setFarmsList(parsed);
+        setFarmsCount(parsed.length);
+      } catch (e) { }
+    }
+
     try {
-      const res = await axios.get(`${GIS_API_URL}/api/farms?user_id=${user.id || user._id}`);
+      const res = await axios.get(`${GIS_API_URL}/api/farms?user_id=${userId}`);
       if (res.data?.status === 'success' && res.data.data) {
         setFarmsList(res.data.data);
         setFarmsCount(res.data.data.length);
+        localStorage.setItem(cacheKey, JSON.stringify(res.data.data));
       }
     } catch (err) {
       console.error('Error fetching farms count:', err);
@@ -169,15 +244,15 @@ const Dashboard = () => {
       handleLiveLocation();
     } else {
       const farm = farmsList.find(f => String(f.id) === val);
-      if (farm && farm.geojson && farm.geojson.geometry && farm.geojson.geometry.coordinates) {
+      if (farm && farm.geojson) {
         try {
-          // Geometry is typically a Polygon: [[[lon, lat], [lon, lat], ...]]
-          const coords = farm.geojson.geometry.coordinates[0][0];
-          const lon = coords[0];
-          const lat = coords[1];
-          fetchLocationData(lat, lon, farm.name);
+          const centroid = turf.centroid(farm.geojson);
+          if (centroid?.geometry?.coordinates) {
+            const [lon, lat] = centroid.geometry.coordinates;
+            fetchLocationData(lat, lon, farm.name);
+          }
         } catch (err) {
-          console.warn("Could not parse farm coordinates", err);
+          console.warn("Could not calculate farm centroid", err);
         }
       }
     }
@@ -286,9 +361,14 @@ const Dashboard = () => {
 
         {/* ── SOIL HEALTH METRICS ───────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {soilLoading ? (
-            Array(4).fill(0).map((_, i) => (
-              <div key={i} className="bg-surface rounded-2xl border border-outline-variant/30 shadow-sm p-5 flex items-center gap-4 animate-pulse">
+          {[
+            { label: 'Soil Moisture', value: currentWeather.moisture != null ? `${currentWeather.moisture}%` : '--', icon: <Droplets className="w-6 h-6" />, color: 'text-blue-500 bg-blue-50', hint: 'Topsoil (0–7cm)', loading: weatherLoading },
+            { label: 'pH Level', value: soil.ph != null ? soil.ph : '--', icon: <FlaskConical className="w-6 h-6" />, color: 'text-purple-500 bg-purple-50', hint: 'Ideal: 6.0–7.5', loading: soilLoading },
+            { label: 'Nitrogen', value: soil.nitrogen != null ? `${soil.nitrogen} g/kg` : '--', icon: <Sprout className="w-6 h-6" />, color: 'text-green-600 bg-green-50', hint: 'Topsoil level', loading: soilLoading },
+            { label: 'Air Temp', value: currentWeather.temperature != null ? `${currentWeather.temperature}°C` : '--', icon: <Thermometer className="w-6 h-6" />, color: 'text-orange-500 bg-orange-50', hint: currentWeather.condition ?? 'Current', loading: weatherLoading },
+          ].map(({ label, value, icon, color, hint, loading }, idx) => (
+            loading ? (
+              <div key={idx} className="bg-surface rounded-2xl border border-outline-variant/30 shadow-sm p-5 flex items-center gap-4 animate-pulse">
                 <div className="w-12 h-12 rounded-2xl bg-surface-container-highest shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="h-3 w-16 bg-surface-container-highest rounded mb-2" />
@@ -296,14 +376,7 @@ const Dashboard = () => {
                   <div className="h-2 w-20 bg-surface-container-highest rounded" />
                 </div>
               </div>
-            ))
-          ) : (
-            [
-              { label: 'Soil Moisture', value: currentWeather.moisture != null ? `${currentWeather.moisture}%` : '--', icon: <Droplets className="w-6 h-6" />, color: 'text-blue-500 bg-blue-50', hint: 'Topsoil (0–7cm)' },
-              { label: 'pH Level', value: soil.ph != null ? soil.ph : '--', icon: <FlaskConical className="w-6 h-6" />, color: 'text-purple-500 bg-purple-50', hint: 'Ideal: 6.0–7.5' },
-              { label: 'Nitrogen', value: soil.nitrogen ?? '--', icon: <Sprout className="w-6 h-6" />, color: 'text-green-600 bg-green-50', hint: 'Topsoil level' },
-              { label: 'Air Temp', value: currentWeather.temperature != null ? `${currentWeather.temperature}°C` : '--', icon: <Thermometer className="w-6 h-6" />, color: 'text-orange-500 bg-orange-50', hint: currentWeather.condition ?? 'Current' },
-            ].map(({ label, value, icon, color, hint }) => (
+            ) : (
               <div key={label} className="bg-surface rounded-2xl border border-outline-variant/30 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow group">
                 <div className={`p-3 rounded-2xl shrink-0 ${color} group-hover:scale-110 transition-transform`}>{icon}</div>
                 <div className="min-w-0">
@@ -312,8 +385,8 @@ const Dashboard = () => {
                   <p className="text-xs text-on-surface-variant/60 mt-0.5 truncate">{hint}</p>
                 </div>
               </div>
-            ))
-          )}
+            )
+          ))}
         </div>
 
         {/* ── MAIN CONTENT GRID ─────────────────────────────────────────── */}
